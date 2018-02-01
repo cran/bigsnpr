@@ -4,17 +4,17 @@
 \alias{snp_plinkIBDQC}
 \title{Identity-by-descent}
 \usage{
-snp_plinkIBDQC(bedfile.in, bedfile.out = NULL,
-  plink.path = download_plink(), pi.hat = 0.08, ncores = 1,
-  pruning.args = c(100, 0.2), do.blind.QC = TRUE, extra.options = "")
+snp_plinkIBDQC(plink.path, bedfile.in, bedfile.out = NULL, pi.hat = 0.08,
+  ncores = 1, pruning.args = c(100, 0.2), do.blind.QC = TRUE,
+  extra.options = "")
 }
 \arguments{
+\item{plink.path}{Path to the executable of PLINK 1.9.}
+
 \item{bedfile.in}{Path to the input bedfile.}
 
 \item{bedfile.out}{Path to the output bedfile. Default is created by
 appending \code{"_norel"} to \code{prefix.in} (\code{bedfile.in} without extension).}
-
-\item{plink.path}{Path to the executable of PLINK 1.9. Default downloads it.}
 
 \item{pi.hat}{PI_HAT value threshold for individuals (first by pairs)
 to be excluded. Default is \code{0.08}.}
@@ -29,7 +29,7 @@ the window size (in variant count) and the pairwise $r^2$ threshold
 \item{do.blind.QC}{Whether to do QC with \code{pi.hat} without visual inspection.
 Default is \code{TRUE}. If \code{FALSE}, return the \code{data.frame} of the corresponding
 ".genome" file without doing QC. One could use
-\code{ggplot2::qplot(Z1, Z2, data = mydf, col = RT)} for visual inspection.}
+\code{ggplot2::qplot(Z0, Z1, data = mydf, col = RT)} for visual inspection.}
 
 \item{extra.options}{Other options to be passed to PLINK as a string
 (for the IBD part). More options can be found at
@@ -47,10 +47,22 @@ using its method-of-moments.
 }
 \examples{
 bedfile <- system.file("extdata", "example.bed", package = "bigsnpr")
-test <- snp_plinkIBDQC(bedfile,
+plink <- download_plink()
+test <- snp_plinkIBDQC(plink, bedfile,
                        bedfile.out = tempfile(fileext = ".bed"),
                        ncores = 2)
 test
+test2 <- snp_plinkIBDQC(plink, bedfile,
+                        do.blind.QC = FALSE,
+                        ncores = 2)
+str(test2)
+library(ggplot2)
+qplot(Z0, Z1, data = test2, col = RT)
+qplot(y = PI_HAT, data = test2) +
+  geom_hline(yintercept = 0.2, color = "blue", linetype = 2)
+snp_plinkRmSamples(plink, bedfile,
+                   bedfile.out = tempfile(fileext = ".bed"),
+                   df.or.files = subset(test2, PI_HAT > 0.2))
 
 }
 \references{

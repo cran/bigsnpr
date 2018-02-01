@@ -4,8 +4,8 @@
 \alias{snp_PRS}
 \title{PRS}
 \usage{
-snp_PRS(G, betas.keep, ind.test, ind.keep = cols_along(G), lpS.keep = NULL,
-  thr.list = 0)
+snp_PRS(G, betas.keep, ind.test = rows_along(G), ind.keep = cols_along(G),
+  same.keep = rep(TRUE, length(ind.keep)), lpS.keep = NULL, thr.list = 0)
 }
 \arguments{
 \item{G}{A \link[=FBM.code256-class]{FBM.code256}
@@ -16,10 +16,14 @@ snp_PRS(G, betas.keep, ind.test, ind.keep = cols_along(G), lpS.keep = NULL,
 corresponding to \code{ind.keep}.
 You may want to see \link{big_univLinReg} or \link{big_univLogReg}.}
 
-\item{ind.test}{The individuals on whom to project the scores.}
+\item{ind.test}{The individuals on whom to project the scores. Default uses all.}
 
 \item{ind.keep}{Column (SNP) indices to use (if using clumping, the
 output of \link{snp_clumping}). Default doesn't clump.}
+
+\item{same.keep}{A logical vector associated with \code{betas.keep} whether the
+reference allele is the same for G. Default is all \code{TRUE} (for example when
+you train the betas on the same dataset). Otherwise, use \link{same_ref}.}
 
 \item{lpS.keep}{Numeric vector of \code{-log10(p.value)} associated with
 \code{betas.keep}. Default doesn't use thresholding.}

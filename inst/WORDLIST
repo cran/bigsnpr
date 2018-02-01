@@ -12,7 +12,11 @@ bigstatsr
 bim
 bp
 cbind
+center
+centering
 Chr
+Color
+Colors
 Devlin
 diploidy
 doesn
@@ -22,6 +26,7 @@ Elsevier
 Elston
 et
 fam
+FBM
 Ferreira
 filebacked
 Filebacked
@@ -31,6 +36,7 @@ gc
 ggplot
 GigaScience
 GWAS
+gray
 Hugues
 IBD
 indices
@@ -48,6 +54,7 @@ MAXL
 Mbp
 nb
 Neale
+neighbor
 parallelize
 parApply
 pcadapt
@@ -69,6 +76,7 @@ scalable
 Shashaank
 shouldn
 snp
+SNP's
 Tellier
 tmp
 univLinReg
