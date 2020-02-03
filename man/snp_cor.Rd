@@ -4,13 +4,20 @@
 \alias{snp_cor}
 \title{Correlation}
 \usage{
-snp_cor(Gna, ind.row = rows_along(Gna), ind.col = cols_along(Gna),
-  size = 500, alpha = 0.05, fill.diag = TRUE)
+snp_cor(
+  Gna,
+  ind.row = rows_along(Gna),
+  ind.col = cols_along(Gna),
+  size = 500,
+  alpha = 0.05,
+  fill.diag = TRUE,
+  infos.pos = NULL
+)
 }
 \arguments{
 \item{Gna}{A \link[=FBM.code256-class]{FBM.code256}
-(typically \code{<bigSNP>$genotypes}).\cr
-You can have missing values in your data.}
+(typically \verb{<bigSNP>$genotypes}).\cr
+You can have missing values in these data.}
 
 \item{ind.row}{An optional vector of the row indices (individuals) that
 are used. If not specified, all rows are used.\cr
@@ -20,22 +27,25 @@ are used. If not specified, all rows are used.\cr
 If not specified, all columns are used.\cr
 \strong{Don't use negative indices.}}
 
-\item{size}{For one SNP, number of SNPs at its left and its right to
-be tested for being correlated with this particular SNP.}
+\item{size}{For one SNP, window size around this SNP to compute correlations.
+Default is \code{500}. If not providing \code{infos.pos} (\code{NULL}, the default), this is
+a window in number of SNPs, otherwise it is a window in kb (genetic distance).}
 
 \item{alpha}{Type-I error for testing correlations.}
 
 \item{fill.diag}{Whether to fill the diagonal with 1s (the default)
 or to keep it as 0s.}
+
+\item{infos.pos}{Vector of integers specifying the physical position
+on a chromosome (in base pairs) of each SNP.\cr
+Typically \verb{<bigSNP>$map$physical.pos}.}
 }
 \value{
 The correlation matrix. This is a sparse symmetric matrix.
 }
 \description{
-Get significant correlations between nearby SNPs.
-}
-\details{
-P-values are computed by a two-sided t-test.
+Get significant correlations between nearby SNPs
+(p-values are computed using a two-sided t-test).
 }
 \examples{
 test <- snp_attachExtdata()

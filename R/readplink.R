@@ -12,7 +12,7 @@
 #'
 #' @param bedfile Path to file with extension ".bed" to read.
 #' You need the corresponding ".bim" and ".fam" in the same directory.
-#' @param backingfile The path (without extension) for the backing file(s)
+#' @param backingfile The path (without extension) for the backing files
 #' for the cache of the [bigSNP][bigSNP-class] object. Default takes the bedfile
 #' without the ".bed" extension.
 #'
@@ -24,25 +24,21 @@
 #'
 #' @example examples/example-readplink.R
 #' @export
-snp_readBed <- function(bedfile, backingfile = sub("\\.bed$", "", bedfile)) {
+snp_readBed <- function(bedfile, backingfile = sub_bed(bedfile)) {
 
   # Check if backingfile already exists
   backingfile <- path.expand(backingfile)
   assert_noexist(paste0(backingfile, ".bk"))
 
-  # Check extension of file
-  assert_ext(bedfile, "bed")
   # Get other files
-  bimfile <- sub("\\.bed$", ".bim", bedfile)
-  famfile <- sub("\\.bed$", ".fam", bedfile)
+  bimfile <- sub_bed(bedfile, ".bim")
+  famfile <- sub_bed(bedfile, ".fam")
   # Check if all three files exist
   sapply(c(bedfile, bimfile, famfile), assert_exist)
 
   # Read map and family files
-  fam <- data.table::fread(famfile, data.table = FALSE)
-  names(fam) <- NAMES.FAM
-  bim <- data.table::fread(bimfile, data.table = FALSE)
-  names(bim) <- NAMES.MAP
+  fam <- bigreadr::fread2(famfile, col.names = NAMES.FAM)
+  bim <- bigreadr::fread2(bimfile, col.names = NAMES.MAP)
 
   # Prepare Filebacked Big Matrix
   bigGeno <- FBM.code256(
@@ -51,8 +47,7 @@ snp_readBed <- function(bedfile, backingfile = sub("\\.bed$", "", bedfile)) {
     code = CODE_012,
     backingfile = backingfile,
     init = NULL,
-    create_bk = TRUE,
-    save = FALSE
+    create_bk = TRUE
   )
 
   # Fill the FBM from bedfile
@@ -66,7 +61,54 @@ snp_readBed <- function(bedfile, backingfile = sub("\\.bed$", "", bedfile)) {
                         class = "bigSNP")
 
   # save it and return the path of the saved object
-  rds <- sub("\\.bk$", ".rds", bigGeno$backingfile)
+  rds <- sub_bk(bigGeno$backingfile, ".rds")
+  saveRDS(snp.list, rds)
+  rds
+}
+
+################################################################################
+
+#' @inheritParams bigsnpr-package
+#' @rdname snp_readBed
+#' @export
+snp_readBed2 <- function(bedfile, backingfile = sub_bed(bedfile),
+                         ind.row = rows_along(obj.bed),
+                         ind.col = cols_along(obj.bed)) {
+
+  # Get mapping of bed
+  obj.bed <- bed(bedfile)
+
+  check_args()
+
+  # Check if backingfile already exists
+  backingfile <- path.expand(backingfile)
+  assert_noexist(paste0(backingfile, ".bk"))
+
+  # Read map and family files
+  fam <- obj.bed$fam[ind.row, ]; rownames(fam) <- rows_along(fam)
+  bim <- obj.bed$map[ind.col, ]; rownames(bim) <- rows_along(bim)
+
+  # Prepare Filebacked Big Matrix
+  bigGeno <- FBM.code256(
+    nrow = nrow(fam),
+    ncol = nrow(bim),
+    code = CODE_012,
+    backingfile = backingfile,
+    init = NULL,
+    create_bk = TRUE
+  )
+
+  # Fill the FBM from bedfile
+  readbina2(bigGeno, obj.bed, ind.row, ind.col)
+
+  # Create the bigSNP object
+  snp.list <- structure(list(genotypes = bigGeno,
+                             fam = fam,
+                             map = bim),
+                        class = "bigSNP")
+
+  # save it and return the path of the saved object
+  rds <- sub_bk(bigGeno$backingfile, ".rds")
   saveRDS(snp.list, rds)
   rds
 }
@@ -88,11 +130,14 @@ snp_readBed <- function(bedfile, backingfile = sub("\\.bed$", "", bedfile)) {
 #' @export
 snp_attach <- function(rdsfile) {
 
+  assert_exist(rdsfile)
   rdsfile <- normalizePath(rdsfile)
   assert_exist(bkfile <- sub("\\.rds$", ".bk", rdsfile))
 
   snp.list <- readRDS(rdsfile)
   snp.list$genotypes$backingfile <- bkfile  # in case of moving files
+  snp.list$genotypes <- bigstatsr:::reconstruct_if_old(
+    snp.list$genotypes, msg2 = "You should use `snp_save()`.")
   snp.list
 }
 
@@ -100,14 +145,16 @@ snp_attach <- function(rdsfile) {
 
 #' Attach a "bigSNP" for examples and tests
 #'
-#' @inheritParams snp_readBed
+#' @param bedfile Name of one example bed file. Either
+#'   - `"example.bed"` (the default),
+#'   - `"example-missing.bed"`.
 #'
 #' @return The example "bigSNP", filebacked in the "/tmp/" directory.
 #'
 #' @export
-snp_attachExtdata <- function(bedfile = system.file("extdata", "example.bed",
-                                                    package = "bigsnpr")) {
+snp_attachExtdata <- function(bedfile = c("example.bed", "example-missing.bed")) {
 
+  bedfile <- system.file("extdata", match.arg(bedfile), package = "bigsnpr")
   snp_attach(
     snp_readBed(bedfile, backingfile = tempfile())
   )

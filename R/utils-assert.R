@@ -1,8 +1,19 @@
 ################################################################################
 
+#' @importFrom bigassertr printf message2 warning2 stop2
+#' @importFrom bigassertr assert_int assert_pos assert_01 assert_nona
+#' @importFrom bigassertr assert_lengths assert_sorted assert_args
+#' @importFrom bigassertr assert_noexist assert_exist assert_dir assert_ext
+#' @importFrom bigassertr assert_type assert_class
+#' @importFrom bigparallelr assert_cores
+assert_noNA <- bigstatsr:::assert_noNA
+
+################################################################################
+
 check_args <- function(...) {
 
   if (getOption("bigstatsr.check.args")) {
+
     args <- as.list(parent.frame())
 
     check <- c(
@@ -11,6 +22,7 @@ check_args <- function(...) {
         x           = "assert_class(x, 'bigSNP')",
         G           = "assert_class(G, 'FBM.code256'); assert_noNA(G)",
         Gna         = "assert_class(Gna, 'FBM.code256')",
+        obj.bed     = "assert_class(obj.bed, 'bed')",
         infos.chr   = "assert_int(infos.chr); assert_pos(infos.chr)",
         infos.pos   = "assert_int(infos.pos); assert_pos(infos.pos)",
         ncores      = "assert_cores(ncores)",
@@ -28,33 +40,5 @@ check_args <- function(...) {
       if (!is.na(i)) with(args, eval(parse(text = check[i])))
   }
 }
-
-################################################################################
-
-# MISSING VALUES
-assert_noNA        <- bigstatsr:::assert_noNA
-# TYPEOF
-assert_type        <- bigstatsr:::assert_type
-# DIRECTORY
-assert_dir         <- bigstatsr:::assert_dir
-# ARGS
-assert_args        <- bigstatsr:::assert_args
-# NUMBER OF CORES
-assert_cores       <- bigstatsr:::assert_cores
-# INTEGERS
-assert_int         <- bigstatsr:::assert_int
-# POSITIVE INDICES
-assert_pos         <- bigstatsr:::assert_pos
-# 0s AND 1s
-assert_01          <- bigstatsr:::assert_01
-# CLASS
-assert_class       <- bigstatsr:::assert_class
-# FILE EXISTS
-assert_exist       <- bigstatsr:::assert_exist
-assert_noexist     <- bigstatsr:::assert_noexist
-# EXTENSION
-assert_ext         <- bigstatsr:::assert_ext
-# LENGTH
-assert_lengths     <- bigstatsr:::assert_lengths
 
 ################################################################################

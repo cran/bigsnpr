@@ -2,14 +2,14 @@
 
 #' Correlation
 #'
-#' Get significant correlations between nearby SNPs.
-#'
-#' P-values are computed by a two-sided t-test.
+#' Get significant correlations between nearby SNPs
+#' (p-values are computed using a two-sided t-test).
 #'
 #' @inheritParams bigsnpr-package
+#' @param size For one SNP, window size around this SNP to compute correlations.
+#' Default is `500`. If not providing `infos.pos` (`NULL`, the default), this is
+#' a window in number of SNPs, otherwise it is a window in kb (genetic distance).
 #' @param alpha Type-I error for testing correlations.
-#' @param size For one SNP, number of SNPs at its left and its right to
-#' be tested for being correlated with this particular SNP.
 #' @param fill.diag Whether to fill the diagonal with 1s (the default)
 #' or to keep it as 0s.
 #'
@@ -32,9 +32,14 @@ snp_cor <- function(Gna,
                     ind.col = cols_along(Gna),
                     size = 500,
                     alpha = 0.05,
-                    fill.diag = TRUE) {
+                    fill.diag = TRUE,
+                    infos.pos = NULL) {
 
   check_args()
+
+  if (is.null(infos.pos)) infos.pos <- 1000 * seq_along(ind.col)
+  assert_lengths(infos.pos, ind.col)
+  assert_sorted(infos.pos)
 
   # Get significance thresholds with type-I error `alpha`
   suppressWarnings(
@@ -42,13 +47,15 @@ snp_cor <- function(Gna,
                          df = seq_along(ind.row) - 2,
                          lower.tail = FALSE)
   )
+  THR <- q.alpha / sqrt(seq_along(ind.row) - 2 + q.alpha^2)
 
   corr <- forceSymmetric(corMat(
     BM = Gna,
     rowInd = ind.row,
     colInd = ind.col,
-    size = size,
-    thr = q.alpha
+    size = size * 1000,
+    thr = THR,
+    pos = infos.pos
   ))
 
   if (fill.diag) diag(corr) <- 1

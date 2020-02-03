@@ -1,8 +1,8 @@
 /******************************************************************************/
 
-#include <RcppArmadillo.h>
 #include <bigstatsr/BMCodeAcc.h>
 #include <fstream>
+#include "bed-acc.h"
 
 using namespace Rcpp;
 using namespace std;
@@ -14,7 +14,7 @@ bool readbina(const char * filename,
               Environment BM,
               const arma::Mat<unsigned char>& tab) {
 
-  XPtr<FBM> xpBM = BM["address"];
+  XPtr<FBM_RW> xpBM = BM["address_rw"];
   unsigned char* ptr = static_cast<unsigned char*>(xpBM->matrix());
   const unsigned char* code_ptr;
   int n = xpBM->nrow();
@@ -25,7 +25,7 @@ bool readbina(const char * filename,
   int lengthExtra = length + (extra > 0);
   int j, k;
 
-  unsigned char *buffer = new unsigned char[std::max(3, lengthExtra)];
+  unsigned char *buffer = new unsigned char[std::max(3, lengthExtra) + 1];
 
   ifstream myFile(filename, ios::in | ios::binary);
   // magic number
@@ -55,6 +55,26 @@ bool readbina(const char * filename,
   return is_eof;
 }
 
+// [[Rcpp::export]]
+void readbina2(Environment BM,
+               Environment obj_bed,
+               const IntegerVector& ind_row,
+               const IntegerVector& ind_col) {
+
+  XPtr<bed> xp_bed = obj_bed["address"];
+  bedAcc macc_bed(xp_bed, ind_row, ind_col);
+
+  XPtr<FBM_RW> xpBM = BM["address_rw"];
+  BMAcc_RW<unsigned char> macc_fbm(xpBM);
+
+  size_t n = macc_bed.nrow();
+  size_t m = macc_bed.ncol();
+
+  for (size_t j = 0; j < m; j++)
+    for (size_t i = 0; i < n; i++)
+      macc_fbm(i, j) = macc_bed(i, j);
+}
+
 /******************************************************************************/
 
 // [[Rcpp::export]]
@@ -70,7 +90,7 @@ void writebina(const char * filename,
   int m = macc.ncol();
   int length = ceil((double)n / 4); // DO NOT USE INTEGERS WITH CEIL
 
-  char *buffer = new char[std::max(3, length)];
+  char *buffer = new char[std::max(3, length) + 1];
   ofstream myFile(filename, ios::out | ios::binary);
 
   // magic number
@@ -80,11 +100,10 @@ void writebina(const char * filename,
   int i, j, k, ind, coef;
 
   for (j = 0; j < m; j++) {
-    k = 0;
-    for (i = 0; i <= n-4; i += 4) {
+    for (i = 0, k = 0; i <= n-4; i += 4, k++) {
       ind = (macc(i, j) + 4 * macc(i+1, j)) +
         (16 * macc(i+2, j) + 64 * macc(i+3, j));
-      buffer[k++] = tab[ind];
+      buffer[k] = tab[ind];
     }
     ind = 0; coef = 1;
     for (; i < n; i++) {

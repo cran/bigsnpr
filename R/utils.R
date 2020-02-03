@@ -1,35 +1,27 @@
 ################################################################################
+
 # Same as in bigstatsr
-
-printf           <- bigstatsr:::printf
-
-message2         <- bigstatsr:::message2
-
-warning2         <- bigstatsr:::warning2
-
-stop2            <- bigstatsr:::stop2
-
-transform_levels <- bigstatsr:::transform_levels
-
-CutBySize        <- bigstatsr:::CutBySize
-
-seq2             <- bigstatsr:::seq2
+CutBySize <- bigstatsr:::CutBySize
+seq2      <- bigstatsr:::seq2
+as_vec    <- bigstatsr:::as_vec
 
 ################################################################################
 
 # global variable definitions due to non standard evaluations
-utils::globalVariables(c("ic", "f", "lp", "LD.wiki34", "OS", "arch"))
+utils::globalVariables(c("ic", "f", "lp", "LD.wiki34", "OS", "arch", "avx2",
+                         "chromosome", "position", "allele1", "allele2",
+                         "myid", "marker.ID", "rsid", "chr", "pos"))
 
 ################################################################################
 
 # functions for encoding/decoding bed files
 getCode <- function(NA.VAL = 3L) {
-  geno.raw <- as.logical(rawToBits(as.raw(0:255)))
+  geno.raw <- !as.logical(rawToBits(as.raw(0:255)))
   s <- c(TRUE, FALSE)
   geno1 <- geno.raw[s]
   geno2 <- geno.raw[!s]
   geno <- geno1 + geno2
-  geno[geno1 & !geno2] <- NA.VAL
+  geno[!geno1 & geno2] <- NA.VAL
   dim(geno) <- c(4, 256)
   storage.mode(geno) <- "raw"
   geno
@@ -59,19 +51,16 @@ NAMES.FAM <- c("family.ID", "sample.ID", "paternal.ID",
 
 ################################################################################
 
-write.table2 <- function(x, file) {
-  utils::write.table(x = x, file = file,
-                     quote = FALSE,
-                     sep = "\t",
-                     row.names = FALSE,
-                     col.names = FALSE)
+write.table2 <- function(x, file, ...) {
+  data.table::fwrite(x, file, sep = "\t", quote = FALSE,
+                     row.names = FALSE, col.names = FALSE, ...)
 }
 
 ################################################################################
 
 getNewFile <- function(x, type) {
 
-  root <- sub("\\.bk$", "", x$genotypes$backingfile)
+  root <- sub_bk(x$genotypes$backingfile)
   EXTS <- c("bk", "rds")
 
   number <- 1

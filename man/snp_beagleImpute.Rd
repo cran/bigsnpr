@@ -4,8 +4,17 @@
 \alias{snp_beagleImpute}
 \title{Imputation}
 \usage{
-snp_beagleImpute(beagle.path, plink.path, bedfile.in, bedfile.out = NULL,
-  memory.max = 3, ncores = 1, extra.options = "")
+snp_beagleImpute(
+  beagle.path,
+  plink.path,
+  bedfile.in,
+  bedfile.out = NULL,
+  memory.max = 3,
+  ncores = 1,
+  extra.options = "",
+  plink.options = "",
+  verbose = TRUE
+)
 }
 \arguments{
 \item{beagle.path}{Path to the executable of Beagle v4+.}
@@ -20,11 +29,16 @@ appending \code{"_impute"} to \code{prefix.in} (\code{bedfile.in} without extens
 \item{memory.max}{Max memory (in GB) to be used. It is internally rounded
 to be an integer. Default is \code{3}.}
 
-\item{ncores}{Number of cores to be used. Default is \code{1}. An usually good
-value for this parameter is \code{ncores = parallel::detectCores() - 1}.}
+\item{ncores}{Number of cores used. Default doesn't use parallelism.
+You may use \link{nb_cores}.}
 
 \item{extra.options}{Other options to be passed to Beagle as a string. More
 options can be found at Beagle's website.}
+
+\item{plink.options}{Other options to be passed to PLINK as a string. More
+options can be found at \url{http://www.cog-genomics.org/plink2/filter}.}
+
+\item{verbose}{Whether to show PLINK log? Default is \code{TRUE}.}
 }
 \value{
 The path of the new bedfile.
@@ -35,16 +49,15 @@ Imputation using \strong{Beagle} version 4.
 \details{
 Downloads and more information can be found at the following websites
 \itemize{
-\item \href{https://www.cog-genomics.org/plink2}{PLINK},
+\item \href{http://www.cog-genomics.org/plink2}{PLINK},
 \item \href{https://faculty.washington.edu/browning/beagle/beagle.html}{Beagle}.
 }
 }
 \references{
-B L Browning and S R Browning (2016).
-Genotype imputation with millions of reference samples.
-Am J Hum Genet 98:116-126.
-\url{dx.doi.org/doi:10.1016/j.ajhg.2015.11.020}
+Browning, Brian L., and Sharon R. Browning.
+"Genotype imputation with millions of reference samples."
+The American Journal of Human Genetics 98.1 (2016): 116-126.
 }
 \seealso{
-\link{download_plink}
+\link{download_plink} \link{download_beagle}
 }

@@ -4,13 +4,21 @@
 \alias{snp_PRS}
 \title{PRS}
 \usage{
-snp_PRS(G, betas.keep, ind.test = rows_along(G), ind.keep = cols_along(G),
-  same.keep = rep(TRUE, length(ind.keep)), lpS.keep = NULL, thr.list = 0)
+snp_PRS(
+  G,
+  betas.keep,
+  ind.test = rows_along(G),
+  ind.keep = cols_along(G),
+  same.keep = rep(TRUE, length(ind.keep)),
+  lpS.keep = NULL,
+  thr.list = 0
+)
 }
 \arguments{
 \item{G}{A \link[=FBM.code256-class]{FBM.code256}
-(typically \code{<bigSNP>$genotypes}).\cr
-\strong{You shouldn't have missing values in your data or SNPs with 0 MAF.}}
+(typically \verb{<bigSNP>$genotypes}).\cr
+\strong{You shouldn't have missing values.} Also, remember to do quality control,
+e.g. some algorithms in this package won't work if you use SNPs with 0 MAF.}
 
 \item{betas.keep}{Numeric vector of weights associated with each SNP
 corresponding to \code{ind.keep}.
@@ -25,7 +33,7 @@ output of \link{snp_clumping}). Default doesn't clump.}
 reference allele is the same for G. Default is all \code{TRUE} (for example when
 you train the betas on the same dataset). Otherwise, use \link{same_ref}.}
 
-\item{lpS.keep}{Numeric vector of \code{-log10(p.value)} associated with
+\item{lpS.keep}{Numeric vector of \code{-log10(p-value)} associated with
 \code{betas.keep}. Default doesn't use thresholding.}
 
 \item{thr.list}{Threshold vector on \code{lpS.keep} at which SNPs are excluded if
@@ -75,9 +83,10 @@ prs <- snp_PRS(G, betas.keep = gwas.train$estim[ind.keep],
 # AUC as a function of the number of predictors
 aucs <- apply(prs, 2, AUC, target = y01[ind.test])
 library(ggplot2)
-bigstatsr:::MY_THEME(qplot(nb.pred, aucs)) +
+qplot(nb.pred, aucs) +
   geom_line() +
   scale_x_log10(breaks = nb.pred) +
-  labs(x = "Number of predictors", y = "AUC")
+  labs(x = "Number of predictors", y = "AUC") +
+  theme_bigstatsr()
 
 }

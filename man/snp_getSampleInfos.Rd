@@ -4,8 +4,15 @@
 \alias{snp_getSampleInfos}
 \title{Get sample information}
 \usage{
-snp_getSampleInfos(x, df.or.files, col.family.ID = 1, col.sample.ID = 2,
-  col.infos = -c(1, 2), pair.sep = "-_-", ...)
+snp_getSampleInfos(
+  x,
+  df.or.files,
+  col.family.ID = 1,
+  col.sample.ID = 2,
+  col.infos = -c(1, 2),
+  pair.sep = "-_-",
+  ...
+)
 }
 \arguments{
 \item{x}{A \link[=bigSNP-class]{bigSNP}.}
@@ -29,7 +36,7 @@ Default is all but the first and the second columns.}
 \item{pair.sep}{Separator used for concatenation family and sample IDs
 in order to match easier. Default is \code{"-_-"}.}
 
-\item{...}{Any additional parameter to pass to \link[data.table:fread]{fread}.
+\item{...}{Any additional parameter to pass to \code{\link[bigreadr:fread2]{bigreadr::fread2()}}.
 Particularly, option \code{header = FALSE} is sometimes needed.}
 }
 \value{
@@ -44,9 +51,9 @@ test <- snp_attachExtdata()
 rle(test$fam$family.ID)
 # Get populations clusters from external files
 files <- system.file("extdata", paste0("cluster", 1:3), package = "bigsnpr")
-data.table::fread(files[1])
+bigreadr::fread2(files[1])
 # need header option
-data.table::fread(files[1], header = FALSE)
+bigreadr::fread2(files[1], header = FALSE)
 infos <- snp_getSampleInfos(test, files, header = FALSE)
 rle(infos[[1]])
 

@@ -1,5 +1,15 @@
 ################################################################################
 
+make_executable <- function(exe) {
+  Sys.chmod(exe, mode = (file.info(exe)$mode | "111"))
+}
+
+system_verbose <- function(..., verbose) {
+  system(..., ignore.stdout = !verbose, ignore.stderr = !verbose)
+}
+
+################################################################################
+
 # https://github.com/r-lib/rappdirs/blob/master/R/utils.r
 get_os <- function() {
   if (.Platform$OS.type == "windows") {
@@ -13,32 +23,45 @@ get_os <- function() {
   }
 }
 
-#' Download PLINK 1.9
+################################################################################
+
+# Thanks @richfitz for this
+get_pattern <- function(x, pattern) {
+  sub(
+    pattern = pattern,
+    replacement = "\\1",
+    x = grep(pattern, x, value = TRUE)
+  )
+}
+
+################################################################################
+
+#' Download PLINK
 #'
-#' Download PLINK 1.9 from \url{https://www.cog-genomics.org/plink2}.
+#' Download PLINK 1.9 from \url{http://www.cog-genomics.org/plink2}.
 #'
 #' @param dir The directory where to put the PLINK executable.
 #'   Default is a temporary directory.
+#' @param overwrite Whether to overwrite file? Default is `FALSE`.
+#' @param verbose Whether to output details of downloading. Default is `TRUE`.
 #'
 #' @return The path of the downloaded PLINK executable.
 #'
 #' @export
 #'
-download_plink <- function(dir = tempdir()) {
+download_plink <- function(dir = tempdir(), overwrite = FALSE, verbose = TRUE) {
 
   myOS <- get_os()
   PLINK <- file.path(dir, `if`(myOS == "Windows", "plink.exe", "plink"))
-  if (file.exists(PLINK)) return(PLINK)
+  if (!overwrite && file.exists(PLINK)) return(PLINK)
 
-  # https://regex101.com/r/jC8nB0/143
-  plink.names  <- gsubfn::strapply(
-    X = readLines("https://www.cog-genomics.org/plink2"),
-    pattern = "(/static/bin/.*/plink_.+?(?<!dev)\\.zip)",
-    simplify = "c",
-    perl = TRUE
+  plink.names <- get_pattern(
+    x = readLines("http://www.cog-genomics.org/plink2"),
+    # http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20190304.zip
+    pattern = ".*(http://s3.amazonaws.com/plink1-assets/plink_.+?\\.zip).*"
   )
   plink.builds <- data.frame(
-    url = paste0("https://www.cog-genomics.org", plink.names),
+    url = plink.names,
     OS = c(rep("Unix", 2), "Mac", rep("Windows", 2)),
     arch = c(64, 32, 64, 64, 32),
     stringsAsFactors = FALSE
@@ -47,13 +70,61 @@ download_plink <- function(dir = tempdir()) {
   myArch <- 8 * .Machine$sizeof.pointer
   url <- subset(plink.builds, OS == myOS & arch == myArch)[["url"]]
 
-  utils::download.file(url, destfile = (plink.zip <- tempfile(fileext = ".zip")))
+  plink.zip <- tempfile(fileext = ".zip")
+  utils::download.file(url, destfile = plink.zip, quiet = !verbose)
   PLINK <- utils::unzip(plink.zip,
                         files = basename(PLINK),
                         exdir = dirname(PLINK))
-  Sys.chmod(PLINK, mode = (file.info(PLINK)$mode | "111"))
+  make_executable(PLINK)
 
   PLINK
+}
+
+################################################################################
+
+#' Download PLINK
+#'
+#' Download PLINK 2.0 from \url{http://www.cog-genomics.org/plink/2.0/}.
+#'
+#' @param AVX2 Whether to download the AVX2 version? This is only available for
+#'   64 bits architectures. Default is `TRUE`.
+#'
+#' @export
+#'
+#' @rdname download_plink
+#'
+download_plink2 <- function(dir = tempdir(), AVX2 = TRUE,
+                            overwrite = FALSE, verbose = TRUE) {
+
+  myOS <- get_os()
+  PLINK2 <- file.path(dir, `if`(myOS == "Windows", "plink2.exe", "plink2"))
+  if (!overwrite && file.exists(PLINK2)) return(PLINK2)
+
+  plink.names <- get_pattern(
+    x = readLines("http://www.cog-genomics.org/plink/2.0/"),
+    # http://s3.amazonaws.com/plink2-assets/plink2_linux_avx2_20190527.zip
+    pattern = ".*(http://s3.amazonaws.com/plink2-assets/plink2_.+?\\.zip).*"
+  )
+  plink.builds <- data.frame(
+    url  = plink.names,
+    OS   = c(rep("Unix", 3),      rep("Mac", 2),  rep("Windows", 3)),
+    arch = c(64, 64, 32,          64, 64,         64, 64, 32),
+    avx2 = c(TRUE, FALSE, FALSE,  TRUE, FALSE,    TRUE, FALSE, FALSE),
+    stringsAsFactors = FALSE
+  )
+
+  myArch <- 8 * .Machine$sizeof.pointer
+  if (myArch == 32) AVX2 <- FALSE
+  url <- subset(plink.builds, OS == myOS & arch == myArch & avx2 == AVX2)[["url"]]
+
+  plink.zip <- tempfile(fileext = ".zip")
+  utils::download.file(url, destfile = plink.zip, quiet = !verbose)
+  PLINK2 <- utils::unzip(plink.zip,
+                         files = basename(PLINK2),
+                         exdir = dirname(PLINK2))
+  make_executable(PLINK2)
+
+  PLINK2
 }
 
 ################################################################################
@@ -74,22 +145,18 @@ download_beagle <- function(dir = tempdir()) {
 
   url <- "https://faculty.washington.edu/browning/beagle/"
 
-  # https://regex101.com/r/jC8nB0/141
-  jar  <- gsubfn::strapply(
-    X = readLines(paste0(url, "beagle.html")),
-    pattern = "(beagle.+?\\.jar)",
-    simplify = "c",
-    perl = TRUE
-  )[[1]]
+  jar <- get_pattern(
+    x = readLines(paste0(url, "beagle.html")),
+    pattern = ".*(beagle.+?\\.jar).*"
+  )
 
-  dest <- file.path(dir, jar)
-
-  if (!file.exists(dest)) {
-    utils::download.file(paste0(url, jar), destfile = dest)
-    Sys.chmod(dest, mode = (file.info(dest)$mode | "111"))
+  beagle <- file.path(dir, jar)
+  if (!file.exists(beagle)) {
+    utils::download.file(paste0(url, jar), destfile = beagle)
+    make_executable(beagle)
   }
 
-  dest
+  beagle
 }
 
 ################################################################################
@@ -97,14 +164,14 @@ download_beagle <- function(dir = tempdir()) {
 #' Quality Control
 #'
 #' Quality Control (QC) and possible conversion to *bed*/*bim*/*fam* files
-#' using [**PLINK 1.9**](https://www.cog-genomics.org/plink2).
+#' using [**PLINK 1.9**](http://www.cog-genomics.org/plink2).
 #'
 #' @param plink.path Path to the executable of PLINK 1.9.
 #' @param prefix.in Prefix (path without extension) of the dataset to be QCed.
 #' @param file.type Type of the dataset to be QCed. Default is `"--bfile"` and
 #'   corresponds to bed/bim/fam files. You can also use `"--file"` for ped/map
 #'   files or `"--vcf"` for a VCF file. More information can be found at
-#'   \url{https://www.cog-genomics.org/plink/1.9/input}.
+#'   \url{http://www.cog-genomics.org/plink/1.9/input}.
 #' @param prefix.out Prefix (path without extension) of the bed/bim/fam dataset
 #'   to be created. Default is created by appending `"_QC"` to `prefix.in`.
 #' @param maf Minimum Minor Allele Frequency (MAF) for a SNP to be kept.
@@ -118,19 +185,16 @@ download_beagle <- function(dir = tempdir()) {
 #' @param autosome.only Whether to exclude all unplaced and non-autosomal
 #'   variants? Default is `FALSE`.
 #' @param extra.options Other options to be passed to PLINK as a string. More
-#'   options can be found at \url{https://www.cog-genomics.org/plink2/filter}.
+#'   options can be found at \url{http://www.cog-genomics.org/plink2/filter}.
+#'   If using PLINK 2.0, you could e.g. use `"--king-cutoff 0.0884"` to remove
+#'   some related samples at the same time of quality controls.
+#' @param verbose Whether to show PLINK log? Default is `TRUE`.
 #'
 #' @return The path of the newly created bedfile.
 #'
 #' @export
 #'
 #' @references
-#' Purcell, Shaun, Benjamin Neale, Kathe Todd-Brown, Lori Thomas,
-#' Manuel A R Ferreira, David Bender, Julian Maller, et al. 2007.
-#' *PLINK: a tool set for whole-genome association and population-based linkage
-#' analyses.* American Journal of Human Genetics 81 (3). Elsevier: 559–75.
-#' \url{http://dx.doi.org/10.1086/519795}.
-#'
 #' Chang, Christopher C, Carson C Chow, Laurent CAM Tellier,
 #' Shashaank Vattikuti, Shaun M Purcell, and James J Lee. 2015.
 #' *Second-generation PLINK: rising to the challenge of larger and richer
@@ -140,8 +204,10 @@ download_beagle <- function(dir = tempdir()) {
 #' @seealso [download_plink] [snp_plinkIBDQC]
 #'
 #' @examples
+#' \dontrun{
+#'
 #' bedfile <- system.file("extdata", "example.bed", package = "bigsnpr")
-#' prefix  <- sub("\\.bed$", "", bedfile)
+#' prefix  <- sub_bed(bedfile)
 #' plink <- download_plink()
 #' test <- snp_plinkQC(plink.path = plink,
 #'                     prefix.in = prefix,
@@ -153,6 +219,7 @@ download_beagle <- function(dir = tempdir()) {
 #'                     hwe = 1e-10,
 #'                     autosome.only = TRUE)
 #' test
+#' }
 #'
 snp_plinkQC <- function(plink.path,
                         prefix.in,
@@ -163,7 +230,8 @@ snp_plinkQC <- function(plink.path,
                         mind = 0.1,
                         hwe = 1e-50,
                         autosome.only = FALSE,
-                        extra.options = "") {
+                        extra.options = "",
+                        verbose = TRUE) {
 
   # new bedfile, check if already exists
   bedfile.out <- paste0(prefix.out, ".bed")
@@ -173,7 +241,7 @@ snp_plinkQC <- function(plink.path,
   if (file.type == "--vcf") prefix.in <- paste0(prefix.in, ".vcf")
 
   # call PLINK 1.9
-  system(
+  system_verbose(
     paste(
       plink.path,
       file.type, prefix.in,
@@ -185,7 +253,8 @@ snp_plinkQC <- function(plink.path,
       "--make-bed",
       "--out", prefix.out,
       extra.options
-    )
+    ),
+    verbose = verbose
   )
 
   # return path to new bedfile
@@ -214,16 +283,15 @@ snp_plinkRmSamples <- function(plink.path,
                                df.or.files,
                                col.family.ID = 1,
                                col.sample.ID = 2,
-                               ...) {
+                               ...,
+                               verbose = TRUE) {
 
   assert_noexist(bedfile.out)
 
   if (is.data.frame(df.or.files)) {
     data.infos <- df.or.files
   } else if (is.character(df.or.files)) {
-    data.infos <- foreach(f = df.or.files, .combine = 'rbind') %do% {
-      data.table::fread(f, data.table = FALSE, ...)
-    }
+    data.infos <- bigreadr::fread2(df.or.files, ...)
   } else {
     stop2("'df.or.files' must be a data.frame or a vector of file paths.")
   }
@@ -231,14 +299,15 @@ snp_plinkRmSamples <- function(plink.path,
   tmpfile <- tempfile()
   write.table2(data.infos[, c(col.family.ID, col.sample.ID)], tmpfile)
   # Make new bed with extraction
-  system(
+  system_verbose(
     paste(
       plink.path,
-      "--bfile", sub("\\.bed$", "", bedfile.in),
+      "--bfile", sub_bed(bedfile.in),
       "--make-bed",
-      "--out", sub("\\.bed$", "", bedfile.out),
+      "--out", sub_bed(bedfile.out),
       "--remove", tmpfile
-    )
+    ),
+    verbose = verbose
   )
 
   bedfile.out
@@ -249,7 +318,7 @@ snp_plinkRmSamples <- function(plink.path,
 #' Identity-by-descent
 #'
 #' Quality Control based on Identity-by-descent (IBD) computed by
-#' [**PLINK 1.9**](https://www.cog-genomics.org/plink2)
+#' [**PLINK 1.9**](http://www.cog-genomics.org/plink2)
 #' using its method-of-moments.
 #'
 #' @inheritParams snp_plinkRmSamples
@@ -263,7 +332,7 @@ snp_plinkRmSamples <- function(plink.path,
 #'   (the step size is fixed to 1). Default is `c(100, 0.2)`.
 #' @param extra.options Other options to be passed to PLINK as a string
 #'   (for the IBD part). More options can be found at
-#'   \url{https://www.cog-genomics.org/plink/1.9/ibd}.
+#'   \url{http://www.cog-genomics.org/plink/1.9/ibd}.
 #' @param do.blind.QC Whether to do QC with `pi.hat` without visual inspection.
 #'   Default is `TRUE`. If `FALSE`, return the `data.frame` of the corresponding
 #'   ".genome" file without doing QC. One could use
@@ -276,26 +345,29 @@ snp_plinkRmSamples <- function(plink.path,
 #'
 #' @inherit snp_plinkQC references
 #'
-#' @seealso [download_plink] [snp_plinkQC]
+#' @seealso [download_plink] [snp_plinkQC] [snp_plinkKINGQC]
 #'
 #' @examples
+#' \dontrun{
+#'
 #' bedfile <- system.file("extdata", "example.bed", package = "bigsnpr")
 #' plink <- download_plink()
-#' test <- snp_plinkIBDQC(plink, bedfile,
-#'                        bedfile.out = tempfile(fileext = ".bed"),
-#'                        ncores = 2)
-#' test
-#' test2 <- snp_plinkIBDQC(plink, bedfile,
-#'                         do.blind.QC = FALSE,
-#'                         ncores = 2)
-#' str(test2)
+#'
+#' bedfile <- snp_plinkIBDQC(plink, bedfile,
+#'                           bedfile.out = tempfile(fileext = ".bed"),
+#'                           ncores = 2)
+#'
+#' df_rel <- snp_plinkIBDQC(plink, bedfile, do.blind.QC = FALSE, ncores = 2)
+#' str(df_rel)
+#'
 #' library(ggplot2)
-#' qplot(Z0, Z1, data = test2, col = RT)
-#' qplot(y = PI_HAT, data = test2) +
+#' qplot(Z0, Z1, data = df_rel, col = RT)
+#' qplot(y = PI_HAT, data = df_rel) +
 #'   geom_hline(yintercept = 0.2, color = "blue", linetype = 2)
 #' snp_plinkRmSamples(plink, bedfile,
 #'                    bedfile.out = tempfile(fileext = ".bed"),
-#'                    df.or.files = subset(test2, PI_HAT > 0.2))
+#'                    df.or.files = subset(df_rel, PI_HAT > 0.2))
+#' }
 #'
 snp_plinkIBDQC <- function(plink.path,
                            bedfile.in,
@@ -304,15 +376,14 @@ snp_plinkIBDQC <- function(plink.path,
                            ncores = 1,
                            pruning.args = c(100, 0.2),
                            do.blind.QC = TRUE,
-                           extra.options = "") {
+                           extra.options = "",
+                           verbose = TRUE) {
 
   # temporary file
   tmpfile <- tempfile()
 
-  # check extension of file
-  assert_ext(bedfile.in, "bed")
   # get file without extension
-  prefix.in <- sub("\\.bed$", "", bedfile.in)
+  prefix.in <- sub_bed(bedfile.in)
 
   # get possibly new file
   if (is.null(bedfile.out)) bedfile.out <- paste0(prefix.in, "_norel.bed")
@@ -320,13 +391,14 @@ snp_plinkIBDQC <- function(plink.path,
 
   # prune if desired
   if (!is.null(pruning.args)) {
-    system(
+    system_verbose(
       paste(
         plink.path,
         "--bfile", prefix.in,
         "--indep-pairwise", pruning.args[1], 1, pruning.args[2],
         "--out", tmpfile
-      )
+      ),
+      verbose = verbose
     )
     opt.pruning <- paste0("--extract ", tmpfile, ".prune.in")
   } else {
@@ -334,7 +406,7 @@ snp_plinkIBDQC <- function(plink.path,
   }
 
   # compute IBD
-  system(
+  system_verbose(
     paste(
       plink.path,
       "--bfile", prefix.in,
@@ -344,12 +416,13 @@ snp_plinkIBDQC <- function(plink.path,
       "--out", tmpfile,
       "--threads", ncores,
       extra.options
-    )
+    ),
+    verbose = verbose
   )
 
   # get genomefile as a data.frame
-  tmp <- data.table::fread(paste0(tmpfile, ".genome"), data.table = FALSE)
-  if (nrow(tmp)) { # if there are samples to filter
+  tmp <- bigreadr::fread2(paste0(tmpfile, ".genome"))
+  if (nrow(tmp) > 0) { # if there are samples to filter
 
     if (do.blind.QC) {
       snp_plinkRmSamples(plink.path, bedfile.in, bedfile.out, tmp)
@@ -368,12 +441,120 @@ snp_plinkIBDQC <- function(plink.path,
 
 ################################################################################
 
+#' Relationship-based pruning
+#'
+#' Quality Control based on KING-robust kinship estimator. More information can
+#' be found at \url{http://www.cog-genomics.org/plink/2.0/distance#king_cutoff}.
+#'
+#' @param plink2.path Path to the executable of PLINK 2.
+#' @inheritParams snp_plinkIBDQC
+#' @param thr.king  Note that KING kinship coefficients are scaled such that
+#'   duplicate samples have kinship 0.5, not 1. First-degree relations
+#'   (parent-child, full siblings) correspond to ~0.25, second-degree relations
+#'   correspond to ~0.125, etc. It is conventional to use a cutoff of ~0.354
+#'   (2^-1.5, the geometric mean of 0.5 and 0.25) to screen for monozygotic
+#'   twins and duplicate samples, ~0.177 (2^-2.5) to remove first-degree
+#'   relations as well, and ~0.0884 (2^-3.5, **default**) to remove
+#'   second-degree relations as well, etc.
+#' @param extra.options Other options to be passed to PLINK2 as a string.
+#' @param make.bed Whether to create new bed/bim/fam files (default).
+#'   Otherwise, returns a table with coefficients of related pairs.
+#'
+#' @return See parameter `make-bed`.
+#' @export
+#'
+#' @inherit snp_plinkQC references
+#' @references
+#' Manichaikul, Ani, Josyf C. Mychaleckyj, Stephen S. Rich, Kathy Daly,
+#' Michele Sale, and Wei-Min Chen. "Robust relationship inference in genome-wide
+#' association studies." Bioinformatics 26, no. 22 (2010): 2867-2873.
+#'
+#' @seealso [download_plink2] [snp_plinkQC]
+#'
+#' @examples
+#' \dontrun{
+#'
+#' bedfile <- system.file("extdata", "example.bed", package = "bigsnpr")
+#' plink2 <- download_plink2(AVX2 = FALSE)
+#'
+#' bedfile2 <- snp_plinkKINGQC(plink2, bedfile,
+#'                             bedfile.out = tempfile(fileext = ".bed"),
+#'                             ncores = 2)
+#'
+#' df_rel <- snp_plinkKINGQC(plink2, bedfile, make.bed = FALSE, ncores = 2)
+#' str(df_rel)
+#' }
+#'
+snp_plinkKINGQC <- function(plink2.path,
+                            bedfile.in,
+                            bedfile.out = NULL,
+                            thr.king = 2^-3.5,
+                            make.bed = TRUE,
+                            ncores = 1,
+                            extra.options = "",
+                            verbose = TRUE) {
+
+  # check PLINK version
+  v <- system(paste(plink2.path, "--version"), intern = TRUE)
+  if (substr(v, 1, 8) != "PLINK v2")
+    stop2("This requires PLINK v2; got '%s' instead.", v)
+
+  # get file without extension
+  prefix.in <- sub_bed(bedfile.in)
+
+  # get possibly new file
+  if (make.bed) {
+
+    if (is.null(bedfile.out)) bedfile.out <- paste0(prefix.in, "_norel.bed")
+    assert_noexist(bedfile.out)
+
+    # compute KING-robust kinship coefficients and filter
+    system_verbose(
+      paste(
+        plink2.path,
+        "--bfile", prefix.in,
+        "--make-bed --king-cutoff", thr.king,
+        "--out", sub_bed(bedfile.out),
+        "--threads", ncores,
+        extra.options
+      ),
+      verbose = verbose
+    )
+
+    bedfile.out
+
+  } else {
+
+    prefix.out <- tempfile()
+
+    # compute table of KING-robust kinship coefficients
+    system_verbose(
+      paste(
+        plink2.path,
+        "--bfile", prefix.in,
+        "--make-king-table --king-table-filter", thr.king,
+        "--out", prefix.out,
+        "--threads", ncores,
+        extra.options
+      ),
+      verbose = verbose
+    )
+
+    rel_df <- bigreadr::fread2(paste0(prefix.out, ".kin0"), header = TRUE)
+    names(rel_df) <- sub("^#(.*)$", "\\1", names(rel_df))
+    rel_df
+
+  }
+}
+
+################################################################################
+
 #' Imputation
 #'
 #' Imputation using **Beagle** version 4.
 #'
 #' Downloads and more information can be found at the following websites
-#' - [PLINK](https://www.cog-genomics.org/plink2),
+#' - [PLINK](http://www.cog-genomics.org/plink2),
 #' - [Beagle](https://faculty.washington.edu/browning/beagle/beagle.html).
 #'
 #' @param beagle.path Path to the executable of Beagle v4+.
@@ -382,53 +563,59 @@ snp_plinkIBDQC <- function(plink.path,
 #'   appending `"_impute"` to `prefix.in` (`bedfile.in` without extension).
 #' @param memory.max Max memory (in GB) to be used. It is internally rounded
 #'   to be an integer. Default is `3`.
-#' @param ncores Number of cores to be used. Default is `1`. An usually good
-#'   value for this parameter is `ncores = parallel::detectCores() - 1`.
 #' @param extra.options Other options to be passed to Beagle as a string. More
 #'   options can be found at Beagle's website.
+#' @param plink.options Other options to be passed to PLINK as a string. More
+#'   options can be found at \url{http://www.cog-genomics.org/plink2/filter}.
+#' @param ncores Number of cores used. Default doesn't use parallelism.
+#'   You may use [nb_cores].
 #'
-#' @references B L Browning and S R Browning (2016).
-#' Genotype imputation with millions of reference samples.
-#' Am J Hum Genet 98:116-126.
-#' \url{dx.doi.org/doi:10.1016/j.ajhg.2015.11.020}
+#' @references Browning, Brian L., and Sharon R. Browning.
+#' "Genotype imputation with millions of reference samples."
+#' The American Journal of Human Genetics 98.1 (2016): 116-126.
 #'
-#' @seealso [download_plink]
+#' @seealso [download_plink] [download_beagle]
 #'
 #' @return The path of the new bedfile.
 #' @export
+#'
 snp_beagleImpute <- function(beagle.path,
                              plink.path,
                              bedfile.in,
                              bedfile.out = NULL,
                              memory.max = 3,
                              ncores = 1,
-                             extra.options = "") {
+                             extra.options = "",
+                             plink.options = "",
+                             verbose = TRUE) {
 
   # get input and output right
-  prefix.in <- sub("\\.bed$", "", bedfile.in)
+  prefix.in <- sub_bed(bedfile.in)
   if (is.null(bedfile.out)) bedfile.out <- paste0(prefix.in, "_impute.bed")
   assert_noexist(bedfile.out)
-  prefix.out <- sub("\\.bed$", "", bedfile.out)
+  prefix.out <- sub_bed(bedfile.out)
 
   # get temporary files
   tmpfile1 <- tempfile()
   tmpfile2 <- tempfile()
 
   # Convert bed/bim/fam to vcf
-  system(
+  system_verbose(
     paste(
       plink.path,
       "--bfile", prefix.in,
       "--recode vcf bgz", # .vcf.gz extension
       "--out", tmpfile1,
-      "--threads", ncores
-    )
+      "--threads", ncores,
+      plink.options
+    ),
+    verbose = verbose
   )
   vcf1 <- paste0(tmpfile1, ".vcf.gz")
   on.exit(file.remove(vcf1), add = TRUE)
 
   # Impute vcf with Beagle version 4
-  system(
+  system_verbose(
     paste(
       "java", sprintf("-Xmx%dg", round(memory.max)),
       "-jar", beagle.path,
@@ -436,18 +623,21 @@ snp_beagleImpute <- function(beagle.path,
       paste0("out=", tmpfile2),
       paste0("nthreads=", ncores),
       extra.options
-    )
+    ),
+    verbose = verbose
   )
   vcf2 <- paste0(tmpfile2, ".vcf.gz")
   on.exit(file.remove(vcf2), add = TRUE)
 
   # Convert back vcf to bed/bim/fam
-  system(
+  system_verbose(
     paste(
       plink.path,
       "--vcf", vcf2,
-      "--out", prefix.out
-    )
+      "--out", prefix.out,
+      plink.options
+    ),
+    verbose = verbose
   )
 
   # return path to new bedfile

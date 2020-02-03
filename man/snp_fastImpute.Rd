@@ -4,25 +4,36 @@
 \alias{snp_fastImpute}
 \title{Fast imputation}
 \usage{
-snp_fastImpute(Gna, infos.chr, alpha = 0.02, size = 500, p.train = 0.8,
-  seed = NA, ncores = 1)
+snp_fastImpute(
+  Gna,
+  infos.chr,
+  alpha = 1e-04,
+  size = 200,
+  p.train = 0.8,
+  n.cor = nrow(Gna),
+  seed = NA,
+  ncores = 1
+)
 }
 \arguments{
 \item{Gna}{A \link[=FBM.code256-class]{FBM.code256}
-(typically \code{<bigSNP>$genotypes}).\cr
-You can have missing values in your data.}
+(typically \verb{<bigSNP>$genotypes}).\cr
+You can have missing values in these data.}
 
 \item{infos.chr}{Vector of integers specifying each SNP's chromosome.\cr
-Typically \code{<bigSNP>$map$chromosome}.}
+Typically \verb{<bigSNP>$map$chromosome}.}
 
-\item{alpha}{Type-I error for testing correlations. Default is \code{0.02}.}
+\item{alpha}{Type-I error for testing correlations. Default is \code{1e-4}.}
 
 \item{size}{Number of neighbor SNPs to be possibly included in the model
-imputing this particular SNP. Default is \code{500}.}
+imputing this particular SNP. Default is \code{200}.}
 
 \item{p.train}{Proportion of non missing genotypes that are used for training
 the imputation model while the rest is used to assess the accuracy of
 this imputation model. Default is \code{0.8}.}
+
+\item{n.cor}{Number of rows that are used to estimate correlations.
+Default uses them all.}
 
 \item{seed}{An integer, for reproducibility. Default doesn't use seeds.}
 
@@ -30,13 +41,56 @@ this imputation model. Default is \code{0.8}.}
 You may use \link{nb_cores}.}
 }
 \value{
-A \code{data.frame} with
+An \link{FBM} with
 \itemize{
-\item the proportion of missing values by SNP,
-\item the estimated proportion of imputation errors by SNP.
+\item the proportion of missing values by SNP (first row),
+\item the estimated proportion of imputation errors by SNP (second row).
 }
 }
 \description{
-Fast imputation algorithm based on local XGBoost models. \strong{This algorithm
-has not been extensively compared with other imputation methods yet.}
+Fast imputation algorithm based on local XGBoost models.
+}
+\examples{
+\dontrun{
+
+fake <- snp_attachExtdata("example-missing.bed")
+G <- fake$genotypes
+CHR <- fake$map$chromosome
+G2 <- snp_fastImpute(G, CHR)
+G2[, 1:5]
+
+# Still missing values
+big_counts(G, ind.col = 1:10)
+# You need to change the code of G
+# To make this permanent, you need to save (modify) the file on disk
+fake$genotypes$code256 <- CODE_IMPUTE_PRED
+fake <- snp_save(fake)
+big_counts(fake$genotypes)[4, ]
+
+# Plot for post-checking
+## Here there is no SNP with more than 1\% error (estimated)
+pvals <- c(0.01, 0.005, 0.002, 0.001); colvals <- 2:5
+df <- data.frame(pNA = G2[1, ], pError = G2[2, ])
+
+# base R
+plot(subset(df, pNA > 0.001), pch = 20)
+idc <- lapply(seq_along(pvals), function(i) {
+  curve(pvals[i] / x, from = 0, lwd = 2,
+        col = colvals[i], add = TRUE)
+})
+legend("topright", legend = pvals, title = "p(NA & Error)",
+       col = colvals, lty = 1, lwd = 2)
+
+# ggplot2
+library(ggplot2)
+Reduce(function(p, i) {
+  p + stat_function(fun = function(x) pvals[i] / x, color = colvals[i])
+}, x = seq_along(pvals), init = ggplot(df, aes(pNA, pError))) +
+  geom_point() +
+  coord_cartesian(ylim = range(df$pError, na.rm = TRUE)) +
+  theme_bw(15)
+}
+}
+\seealso{
+\code{\link[=snp_fastImputeSimple]{snp_fastImputeSimple()}}
 }

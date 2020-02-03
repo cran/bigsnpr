@@ -2,14 +2,30 @@
 % Please edit documentation in R/pcadapt.R
 \name{snp_pcadapt}
 \alias{snp_pcadapt}
+\alias{bed_pcadapt}
 \title{Outlier detection}
 \usage{
-snp_pcadapt(G, U.row, ind.row = rows_along(G), ind.col = cols_along(G))
+snp_pcadapt(
+  G,
+  U.row,
+  ind.row = rows_along(G),
+  ind.col = cols_along(G),
+  ncores = 1
+)
+
+bed_pcadapt(
+  obj.bed,
+  U.row,
+  ind.row = rows_along(obj.bed),
+  ind.col = cols_along(obj.bed),
+  ncores = 1
+)
 }
 \arguments{
 \item{G}{A \link[=FBM.code256-class]{FBM.code256}
-(typically \code{<bigSNP>$genotypes}).\cr
-\strong{You shouldn't have missing values in your data or SNPs with 0 MAF.}}
+(typically \verb{<bigSNP>$genotypes}).\cr
+\strong{You shouldn't have missing values.} Also, remember to do quality control,
+e.g. some algorithms in this package won't work if you use SNPs with 0 MAF.}
 
 \item{U.row}{Left singular vectors (not scores, \eqn{U^T U = I})
 corresponding to \code{ind.row}.}
@@ -21,6 +37,12 @@ are used. If not specified, all rows are used.\cr
 \item{ind.col}{An optional vector of the column indices (SNPs) that are used.
 If not specified, all columns are used.\cr
 \strong{Don't use negative indices.}}
+
+\item{ncores}{Number of cores used. Default doesn't use parallelism.
+You may use \link{nb_cores}.}
+
+\item{obj.bed}{Object of type \code{bed}, which is the mapping of some bed file.
+Use \code{obj.bed <- bed(bedfile)} to get this object.}
 }
 \value{
 An object of classes \code{mhtest} and \code{data.frame} returning one
