@@ -1,4 +1,4 @@
-4e9922f35c8ee6f65c565e351f0c8733 *DESCRIPTION
+fb133faf91943c5d59f5632880737abc *DESCRIPTION
 6d80c6b208215588d572e9798adc4113 *NAMESPACE
 3299db43abd8cc0e8f6112d895f87d3f *NEWS.md
 5f9dd26f12c3e29d5f1cb2335549cbaa *R/MAX3.R
@@ -128,7 +128,7 @@ de5bcb2154b9515576848369d5d54eb7 *src/impute-simple.cpp
 d1b004762b6904147d0fd0fd890a68d1 *tests/spelling.R
 25135cb11e522c9e970c479414648c9d *tests/testthat.R
 6f17ed4e91ddfab495be54390b958f78 *tests/testthat/helper-init.R
-268a14c5036f7b448639dfd5a947b202 *tests/testthat/test-1-attach.R
+74f2c88b61391eced010de47ef6f5845 *tests/testthat/test-1-attach.R
 6368dda776a91d28bc19062419023e06 *tests/testthat/test-1-fake.R
 bb6193e838efe128b0674bfde495db98 *tests/testthat/test-1-get-save-infos.R
 13e4ef9ae8cfdf407b5aead2eb20eec3 *tests/testthat/test-1-readBGEN.R

@@ -2,8 +2,8 @@ Encoding: UTF-8
 Package: bigsnpr
 Type: Package
 Title: Analysis of Massive SNP Arrays
-Version: 1.2.1
-Date: 2020-02-02
+Version: 1.2.2
+Date: 2020-02-06
 Authors@R: c(
     person("Florian", "Privé", 
            email = "florian.prive.21@gmail.com", 
@@ -37,10 +37,10 @@ RoxygenNote: 7.0.2
 URL: https://privefl.github.io/bigsnpr
 BugReports: https://github.com/privefl/bigsnpr/issues
 NeedsCompilation: yes
-Packaged: 2020-02-03 15:09:55 UTC; au639593
+Packaged: 2020-02-06 23:26:00 UTC; au639593
 Author: Florian Privé [aut, cre],
   Michael Blum [ths],
   Hugues Aschard [ths]
 Maintainer: Florian Privé <florian.prive.21@gmail.com>
 Repository: CRAN
-Date/Publication: 2020-02-03 19:50:02 UTC
+Date/Publication: 2020-02-07 12:10:27 UTC
