@@ -74,6 +74,8 @@ nb
 Neale
 OADP
 OGK
+OpenMP
+parallelization
 parallelize
 parApply
 pcadapt
@@ -92,6 +94,7 @@ Privé
 PRS
 QCed
 Qiu
+RcppParallel
 rds
 RDS
 README

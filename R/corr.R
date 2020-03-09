@@ -2,7 +2,7 @@
 
 #' Correlation
 #'
-#' Get significant correlations between nearby SNPs
+#' Get significant correlations between nearby SNPs of the same chromosome
 #' (p-values are computed using a two-sided t-test).
 #'
 #' @inheritParams bigsnpr-package
@@ -33,7 +33,8 @@ snp_cor <- function(Gna,
                     size = 500,
                     alpha = 0.05,
                     fill.diag = TRUE,
-                    infos.pos = NULL) {
+                    infos.pos = NULL,
+                    ncores = 1) {
 
   check_args()
 
@@ -49,15 +50,17 @@ snp_cor <- function(Gna,
   )
   THR <- q.alpha / sqrt(seq_along(ind.row) - 2 + q.alpha^2)
 
-  corr <- forceSymmetric(corMat(
-    BM = Gna,
+  corr <- corMat(
+    BM     = Gna,
     rowInd = ind.row,
     colInd = ind.col,
-    size = size * 1000,
-    thr = THR,
-    pos = infos.pos
-  ))
+    size   = size * 1000,
+    thr    = THR,
+    pos    = infos.pos,
+    ncores = ncores
+  )
 
+  corr <- forceSymmetric(corr)
   if (fill.diag) diag(corr) <- 1
 
   corr

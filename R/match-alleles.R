@@ -122,14 +122,15 @@ snp_modifyBuild <- function(info_snp, liftOver, from = "hg18", to = "hg19") {
     stop2("Please use proper names for variables in 'info_snp'. Expected %s.",
           "'chr' and 'pos'")
 
+  # Make sure liftOver is executable
+  liftOver <- normalizePath(liftOver)
+  make_executable(liftOver)
+
   # Need BED UCSC file for liftOver
   BED <- tempfile(fileext = ".BED")
   info_BED <- with(info_snp, data.frame(
     paste0("chr", chr), pos0 = pos - 1L, pos, id = rows_along(info_snp)))
   bigreadr::fwrite2(info_BED, BED, col.names = FALSE, sep = " ")
-
-  # Make sure liftOver is executable
-  make_executable(liftOver)
 
   # Need chain file
   url <- paste0("ftp://hgdownload.cse.ucsc.edu/goldenPath/", from, "/liftOver/",
@@ -139,14 +140,14 @@ snp_modifyBuild <- function(info_snp, liftOver, from = "hg18", to = "hg19") {
 
   # Run liftOver (usage: liftOver oldFile map.chain newFile unMapped)
   lifted <- tempfile(fileext = ".BED")
-  unmaped <- tempfile(fileext = ".txt")
-  system(paste(liftOver, BED, chain, lifted, unmaped))
+  unmapped <- tempfile(fileext = ".txt")
+  system(paste(liftOver, BED, chain, lifted, unmapped))
 
   # readLines(lifted, n = 5)
   new_pos <- bigreadr::fread2(lifted)
 
-  # readLines(unmaped, n = 6)
-  bad <- grep("^#", readLines(unmaped), value = TRUE, invert = TRUE)
+  # readLines(unmapped, n = 6)
+  bad <- grep("^#", readLines(unmapped), value = TRUE, invert = TRUE)
   message2("%d variants have not been mapped.", length(bad))
 
   info_snp$pos <- NA

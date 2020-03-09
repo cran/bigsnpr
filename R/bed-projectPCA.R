@@ -20,7 +20,7 @@
 #'
 download_1000G <- function(dir, overwrite = FALSE, delete_zip = TRUE) {
 
-  dir <- sub("/$", "", dir)
+  assert_dir(dir <- sub("/$", "", dir))
   files_unzipped <- file.path(dir, paste0("1000G_phase3_common_norel",
                                           c(".bed", ".bim", ".fam", ".fam2")))
 
@@ -141,7 +141,7 @@ bed_projectPCA <- function(obj.bed.ref, obj.bed.new, k = 10,
   XV     <- FBM(length(ind.row.new), k, init = 0)
 
   big_parallelize(
-    obj.bed.new,
+    obj.bed.new$light,
     p.FUN = part_prod,
     ind = seq_along(keep),
     ncores = ncores,
@@ -193,7 +193,7 @@ bed_projectSelfPCA <- function(obj.svd, obj.bed, ind.row,
   XV     <- FBM(length(ind.row), ncol(obj.svd$v), init = 0)
 
   big_parallelize(
-    obj.bed,
+    obj.bed$light,
     p.FUN = part_prod,
     ind = seq_along(ind.col),
     ncores = ncores,

@@ -1,3 +1,23 @@
+## bigsnpr 1.3.0
+
+- Parallelization of clumping algorithms has been modified. Before, chromosomes were imputed in parallel. Now, chromosomes are processed sequentially, but computations within each chromosome are performed in parallel thanks to OpenMP. This should prevent major slowdowns for very large samples sizes (due to swapping).
+
+- Use OpenMP to parallelize other functions as well (possibly only sequential until now).
+
+## bigsnpr 1.2.6
+
+- Can now run `snp_cor()` in parallel.
+
+- Parallelization of `snp_fastImpute()` has been modified. Before this version, chromosomes were imputed in parallel. Now, chromosomes are processed sequentially, but computation of correlation between variants and XGBoost models are performed using parallelization.
+
+## bigsnpr 1.2.5
+
+- Add function `snp_subset()` as alias of method `subset()` to subset `bigSNP` objects.
+
+## bigsnpr 1.2.4
+
+- Use new class `bed_light` internally to make parallel algorithms faster because they have to transfer less data to clusters. Also define differently functions used in `big_parallelize()` for the same reason.
+
 ## bigsnpr 1.2.0
 
 - Use the new implementation of robust OGK Mahalanobis distance in {bigutilsr}.

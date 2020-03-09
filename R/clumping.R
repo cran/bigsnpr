@@ -4,12 +4,11 @@
 #'
 #' For a `bigSNP`:
 #' - `snp_pruning()`: LD pruning. Similar to "`--indep-pairwise (size+1) 1 thr.r2`"
-#'   in [PLINK](https://www.cog-genomics.org/plink/1.9/ld)
-#'   (`step` is fixed to 1). **This function is deprecated (see
-#' [this article](https://privefl.github.io/bigsnpr/articles/pruning-vs-clumping.html)).**
-#' - `snp_clumping()` (and `bed_clumping()`): LD clumping. If you do not provide any statistic to rank
-#'   SNPs, it would use minor allele frequencies (MAFs), making clumping similar
-#'   to pruning.
+#'   in [PLINK](https://www.cog-genomics.org/plink/1.9/ld).
+#'   **This function is deprecated (see [this article](http://bit.ly/2uKo3MN)).**
+#' - `snp_clumping()` (and `bed_clumping()`): LD clumping. If you do not provide
+#'   any statistic to rank SNPs, it would use minor allele frequencies (MAFs),
+#'   making clumping similar to pruning.
 #' - `snp_indLRLDR()`: Get SNP indices of long-range LD regions for the
 #'   human genome.
 #'
@@ -21,7 +20,7 @@
 #' the corresponding statistic).\cr
 #' For example, if `S` follows the standard normal distribution, and "important"
 #' means significantly different from 0, you must use `abs(S)` instead.\cr
-#' If not specified, the MAF is computed and used.
+#' **If not specified, MAFs are computed and used.**
 #'
 #' @param size For one SNP, window size around this SNP to compute correlations.
 #' Default is `100 / thr.r2` for clumping (0.2 -> 500; 0.1 -> 1000; 0.5 -> 200).
@@ -46,9 +45,19 @@
 #' - `snp_indLRLDR()`: SNP indices to be used as (part of) the '__`exclude`__'
 #'   parameter of `snp_clumping()`.
 #'
-#' @example examples/example-pruning.R
-#'
 #' @export
+#'
+#' @examples
+#' test <- snp_attachExtdata()
+#' G <- test$genotypes
+#'
+#' # clumping (prioritizing higher MAF)
+#' ind.keep <- snp_clumping(G, infos.chr = test$map$chromosome,
+#'                          infos.pos = test$map$physical.pos,
+#'                          thr.r2 = 0.1)
+#'
+#' # keep most of them -> not much LD in this simulated dataset
+#' length(ind.keep) / ncol(G)
 #'
 snp_clumping <- function(G, infos.chr,
                          ind.row = rows_along(G),
@@ -65,48 +74,64 @@ snp_clumping <- function(G, infos.chr,
   if (!missing(is.size.in.bp))
     warning2("Parameter 'is.size.in.bp' is deprecated.")
 
-  args <- as.list(environment())
-
   if (!is.null(S)) assert_lengths(infos.chr, S)
 
-  do.call(what = snp_split, args = c(args, FUN = clumpingChr, combine = 'c'))
+  ind.noexcl <- setdiff(seq_along(infos.chr), exclude)
+
+  sort(unlist(
+    lapply(split(ind.noexcl, infos.chr[ind.noexcl]), function(ind.chr) {
+      clumpingChr(G, S, ind.chr, ind.row, size, infos.pos, thr.r2, ncores)
+    }),
+    use.names = FALSE
+  ))
 }
 
 ################################################################################
 
-clumpingChr <- function(G, S, ind.chr, ind.row, size, is.size.in.bp, infos.pos,
-                        thr.r2, exclude) {
-
-  ind.chr <- setdiff(ind.chr, exclude)
+clumpingChr <- function(G, S, ind.chr, ind.row, size, infos.pos, thr.r2, ncores) {
 
   # cache some computations
-  stats <- big_colstats(G, ind.row = ind.row, ind.col = ind.chr)
-  n <- length(ind.row)
+  stats <- snp_colstats(G, ind.row, ind.chr, ncores)
 
   # statistic to prioritize SNPs
+  n <- length(ind.row)
   if (is.null(S)) {
-    af <- stats$sum / (2 * n)
+    af <- stats$sumX / (2 * n)
     S.chr <- pmin(af, 1 - af)
   } else {
     S.chr <- S[ind.chr]
   }
-  pos.chr <- `if`(is.null(infos.pos), 1000L * seq_along(ind.chr), infos.pos[ind.chr])
-  assert_sorted(pos.chr)
+  ord <- order(S.chr, decreasing = TRUE)
+
+  if (is.null(infos.pos)) {
+    pos.chr <- seq_along(ind.chr)
+  } else {
+    size <- size * 1000  # kbp to bp
+    pos.chr <- infos.pos[ind.chr]
+    assert_sorted(pos.chr)
+  }
+
+  keep <- FBM(1, length(ind.chr), type = "integer", init = -1)
 
   # main algo
-  keep <- clumping_chr(
+  clumping_chr(
     G,
+    keep,
     rowInd = ind.row,
     colInd = ind.chr,
-    ordInd = order(S.chr, decreasing = TRUE),
+    ordInd = ord,
+    rankInd = match(seq_along(ord), ord),
     pos    = pos.chr,
-    sumX   = stats$sum,
-    denoX  = (n - 1) * stats$var,
-    size   = size * 1000L, # in bp
-    thr    = thr.r2
+    sumX   = stats$sumX,
+    denoX  = stats$denoX,
+    size   = size,
+    thr    = thr.r2,
+    ncores = ncores
   )
 
-  ind.chr[keep]
+  stopifnot(all(keep[] %in% 0:1))
+
+  ind.chr[keep[] == 1]
 }
 
 ################################################################################
@@ -123,15 +148,8 @@ snp_pruning <- function(G, infos.chr,
                         nploidy = 2,
                         ncores = 1) {
 
-  check_args()
-
-  warning2("Pruning is deprecated; using clumping (on MAF) instead..\n%s",
-           "See why there: https://goo.gl/Td5YYv.")
-
-  args <- c(as.list(environment()), list(S = NULL))
-  args[["nploidy"]] <- NULL
-
-  do.call(what = snp_split, args = c(args, FUN = clumpingChr, combine = 'c'))
+  stop2("Pruning is deprecated; please use clumping (on MAF) instead..\n%s",
+        "See why at http://bit.ly/2uKo3MN.")
 }
 
 ################################################################################

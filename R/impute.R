@@ -26,39 +26,42 @@ FBM_infos <- function(Gna) {
 
 ################################################################################
 
-imputeChr <- function(Gna, infos.imp, ind.chr, alpha, size, p.train, n.cor, seed) {
+imputeChr <- function(X, X2, infos.imp, ind.chr, alpha, size,
+                      p.train, n.cor, seed, ncores) {
 
-  # Do something only if there is something to do
+  old <- .Random.seed
+  on.exit(.Random.seed <<- old, add = TRUE)
+
+  # Do something only if there is still something to do
   if (any(is.na(infos.imp[1, ind.chr]))) {
 
-    # reproducibility
-    if (!any(is.na(seed))) set.seed(seed[attr(ind.chr, "chr")])
+    n <- nrow(X)
 
-    # init
-    n  <- nrow(Gna)
-    X  <- Gna$copy(code = CODE_IMPUTE_LABEL)
-    X2 <- Gna$copy(code = CODE_IMPUTE_PRED)
+    if (!is.na(seed)) set.seed(seed)
 
-    # correlation between SNPs
+    # correlation between variants
     corr <- snp_cor(
-      Gna = X,
-      ind.row = sort(sample(n, size = n.cor)),
-      ind.col = ind.chr,
-      size = size,
-      alpha = alpha,
-      fill.diag = FALSE
+      Gna       = X,
+      ind.row   = sort(sample(n, size = n.cor)),
+      ind.col   = ind.chr,
+      size      = size,
+      alpha     = alpha,
+      fill.diag = FALSE,
+      ncores    = ncores
     )
 
     # imputation
     for (i in seq_along(ind.chr)) {
+
+      if (!is.na(seed)) set.seed(seed + i)
 
       snp <- ind.chr[i]
       # Do something only if it wasn't done before
       if (is.na(infos.imp[1, snp])) {
 
         X.label <- X[, snp]
-        l <- length(indNA <- which(is.na(X.label)))
-        if (l > 0) {
+        nbna <- length(indNA <- which(is.na(X.label)))
+        if (nbna > 0) {
           indNoNA <- setdiff(seq_len(n), indNA)
           ind.train <- sort(sample(indNoNA, size = p.train * length(indNoNA)))
           ind.val <- setdiff(indNoNA, ind.train)
@@ -67,16 +70,22 @@ imputeChr <- function(Gna, infos.imp, ind.chr, alpha, size, p.train, n.cor, seed
           if (length(ind.col) < 5L)
             ind.col <- intersect(setdiff(-size:size + snp, snp), ind.chr)
 
-          bst <- xgboost::xgboost(
-            data = X2[ind.train, ind.col, drop = FALSE],
+          data.train <- xgboost::xgb.DMatrix(
             label = X.label[ind.train],
-            objective = "binary:logistic",
+            data  = X2[ind.train, ind.col, drop = FALSE])
+
+          bst.params <- list(
+            objective  = "binary:logistic",
+            max_depth  = 4,
             base_score = min(max(1e-7, mean(X.label[ind.train])), 1 - 1e-7),
-            nrounds = 10,
-            params = list(max_depth = 4),
-            nthread = 1,
-            verbose = 0,
-            save_period = NULL
+            verbose    = 0,
+            nthread    = ncores
+          )
+
+          bst <- xgboost::xgb.train(
+            data    = data.train,
+            params  = bst.params,
+            nrounds = 10
           )
 
           # error of validation
@@ -86,8 +95,9 @@ imputeChr <- function(Gna, infos.imp, ind.chr, alpha, size, p.train, n.cor, seed
           pred <- stats::predict(bst, X2[indNA, ind.col, drop = FALSE])
           X2[indNA, snp] <- as.raw(round(2 * pred) + 4)
         }
-        # this SNP is done
-        infos.imp[1, snp] <- l / n
+
+        # this variant is done
+        infos.imp[1, snp] <- nbna / n
       }
     }
 
@@ -137,17 +147,24 @@ snp_fastImpute <- function(Gna, infos.chr,
 
   check_args(infos.chr = "assert_lengths(infos.chr, cols_along(Gna))")
 
+  X  <- Gna$copy(code = CODE_IMPUTE_LABEL)
+  X2 <- Gna$copy(code = CODE_IMPUTE_PRED)
+
   infos.imp <- FBM_infos(Gna)
 
-  if (!is.na(seed)) seed <- seq_len(max(infos.chr)) + seed
-  args <- as.list(environment())
-
-  do.call(what = snp_split, args = c(args, FUN = imputeChr, combine = 'c'))
+  ind.chrs <- split(seq_along(infos.chr), infos.chr)
+  for (ind in ind.chrs) {
+    imputeChr(X, X2, infos.imp, ind, alpha, size, p.train, n.cor, seed, ncores)
+  }
 
   infos.imp
 }
 
 ################################################################################
+
+part_impute <- function(X, ind, method) {
+  impute(X, rows_along(X), ind, method)
+}
 
 #' Fast imputation
 #'
@@ -156,7 +173,7 @@ snp_fastImpute <- function(Gna, infos.chr,
 #' @inheritParams bigsnpr-package
 #' @param method Either `"random"` (sampling according to allele frequencies),
 #'   `"mean0"` (rounded mean), `"mean2"` (rounded mean to 2 decimal places),
-#'   `"mode"` (most frequent call), `"zero"` (by 0).
+#'   `"mode"` (most frequent call).
 #'
 #' @return A new `FBM.code256` object (same file, but different code).
 #' @export
@@ -172,18 +189,20 @@ snp_fastImpute <- function(Gna, infos.chr,
 #' G[, 2]  # imputed, but still returning missing values
 #' G$copy(code = CODE_IMPUTE_PRED)[, 2]  # need to decode imputed values
 #'
+#' G$copy(code = c(0, 1, 2, rep(0, 253)))[, 2]  # "imputation" by 0
+#'
 snp_fastImputeSimple <- function(
-  Gna, method = c("mode", "mean0", "mean2", "random", "zero"), ncores = 1) {
+  Gna, method = c("mode", "mean0", "mean2", "random"), ncores = 1) {
 
   check_args()
-
   stopifnot(identical(Gna$code256, CODE_012))
 
-  method <- match(match.arg(method), c("mode", "mean0", "mean2", "random", "zero"))
-  big_parallelize(Gna, function(X, ind, method) {
-    impute(X, rows_along(X), ind, method)
-  }, ncores = ncores, method = method)
-
-  CODE <- `if`(method == 3, CODE_DOSAGE, CODE_IMPUTE_PRED)
-  Gna$copy(code = CODE)
+  if (identical(method, "zero")) {
+    warning2("Using 'method = \"zero\"' is deprecated. Using $copy() instead..")
+    Gna$copy(code = c(0, 1, 2, 0, rep(NA, 252)))
+  } else {
+    method <- match(match.arg(method), c("mode", "mean0", "mean2", "random"))
+    big_parallelize(Gna, p.FUN = part_impute, ncores = ncores, method = method)
+    Gna$copy(code = `if`(method == 3, CODE_DOSAGE, CODE_IMPUTE_PRED))
+  }
 }

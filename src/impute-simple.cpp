@@ -6,16 +6,6 @@ using namespace Rcpp;
 
 /******************************************************************************/
 
-void impute_by_0(SubBMAcc_RW<unsigned char>& macc) {
-
-  size_t n = macc.nrow();
-  size_t m = macc.ncol();
-
-  for (size_t j = 0; j < m; j++)
-    for (size_t i = 0; i < n; i++)
-      if (macc(i, j) > 2) macc(i, j) = 4;  // 4 is imputed 0
-}
-
 // [[Rcpp::export]]
 void impute(Environment BM,
             const IntegerVector& rowInd,
@@ -23,9 +13,7 @@ void impute(Environment BM,
             int method) {
 
   XPtr<FBM_RW> xpBM = BM["address_rw"];
-  SubBMAcc_RW<unsigned char> macc(xpBM, rowInd - 1, colInd - 1);
-
-  if (method == 5) return impute_by_0(macc);
+  SubBMAcc_RW<unsigned char> macc(xpBM, rowInd, colInd, 1);
 
   size_t n = macc.nrow();
   size_t m = macc.ncol();
