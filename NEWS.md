@@ -1,3 +1,35 @@
+## bigsnpr 1.5.1
+
+- Add multiple checks in `snp_readBGEN()` to make sure of the expected format.
+
+## bigsnpr 1.5.0
+
+- Add function `snp_fst()` for computing Fst. 
+
+## bigsnpr 1.4.11
+
+- Workaround for error `could not find function "ldpred2_gibbs_auto"`.
+
+## bigsnpr 1.4.9 & bigsparser 0.4.0
+
+- Can now directly do `as_SFBM(corr0)` instead of `bigsparser::as_SFBM(as(corr0, "dgCMatrix"))`. This should also use less memory and be faster.
+
+## bigsnpr 1.4.8
+
+- Add option `sparse` to enable getting also a sparse solution in LDpred2-auto.
+
+## bigsparser 0.3.0
+
+- Faster `bigsparser::as_SFBM()`.
+
+## bigsnpr 1.4.7
+
+- Allow for format `01` or `1` for chromosomes in BGI files.
+
+## bigsnpr 1.4.6
+
+- Fasten `snp_match()`. Also now remove duplicates by default.
+
 ## bigsnpr 1.4.3
 
 - Fix a bug when using very large correlation matrices in LDpred2 (although we do not recommend to do so).
@@ -8,7 +40,7 @@
 
 - Allow for multiple initial values for p in `snp_ldpred2_auto()`.
 
-- Add function `coef_to_liab()` to e.g. convert heritability to the liability scale.
+- Add function `coef_to_liab()` for e.g. converting heritability to the liability scale.
 
 ## bigsnpr 1.4.1
 
@@ -42,7 +74,7 @@
 
 ## bigsnpr 1.2.5
 
-- Add function `snp_subset()` as alias of method `subset()` to subset `bigSNP` objects.
+- Add function `snp_subset()` as alias of method `subset()` for subsetting `bigSNP` objects.
 
 ## bigsnpr 1.2.4
 

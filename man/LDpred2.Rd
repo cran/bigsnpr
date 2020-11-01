@@ -24,13 +24,14 @@ snp_ldpred2_auto(
   vec_p_init = 0.1,
   burn_in = 1000,
   num_iter = 500,
+  sparse = FALSE,
   verbose = FALSE,
   ncores = 1
 )
 }
 \arguments{
-\item{corr}{Sparse correlation matrix as an \link[=SFBM-class]{SFBM}. If \code{corr} is
-a dgSMatrix, you can use \code{bigsparser::as_SFBM(as(corr, "dgCMatrix"))}.}
+\item{corr}{Sparse correlation matrix as an \link[=SFBM-class]{SFBM}.
+If \code{corr} is a dsCMatrix or a dgCMatrix, you can use \code{as_SFBM(corr)}.}
 
 \item{df_beta}{A data frame with 3 columns:
 \itemize{
@@ -61,6 +62,10 @@ You may use \link{nb_cores}.}
 
 \item{vec_p_init}{Vector of initial values for p. Default is \code{0.1}.}
 
+\item{sparse}{In LDpred2-auto, whether to also report a sparse solution by
+running LDpred2-grid with the estimates of p and h2 from LDpred2-auto, and
+sparsity enabled. Default is \code{FALSE}.}
+
 \item{verbose}{Whether to print "p // h2" estimates at each iteration.}
 }
 \value{
@@ -81,5 +86,5 @@ useful to check convergence of the iterative algorithm
 }
 }
 \description{
-LDpred2. Tutorial at \url{https://bit.ly/ldpred2}.
+LDpred2. Tutorial at \url{https://privefl.github.io/bigsnpr/articles/LDpred2.html}.
 }

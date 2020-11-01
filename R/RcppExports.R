@@ -77,8 +77,8 @@ multLinReg <- function(obj, ind_row, ind_col, U, ncores = 1L) {
     .Call(`_bigsnpr_multLinReg`, obj, ind_row, ind_col, U, ncores)
 }
 
-read_bgen <- function(filename, offsets, BM, ind_row, ind_col, decode, dosage, ncores) {
-    .Call(`_bigsnpr_read_bgen`, filename, offsets, BM, ind_row, ind_col, decode, dosage, ncores)
+read_bgen <- function(filename, offsets, BM, ind_row, ind_col, decode, dosage, N, ncores) {
+    .Call(`_bigsnpr_read_bgen`, filename, offsets, BM, ind_row, ind_col, decode, dosage, N, ncores)
 }
 
 readbina <- function(filename, BM, tab) {
@@ -87,6 +87,10 @@ readbina <- function(filename, BM, tab) {
 
 readbina2 <- function(BM, obj_bed, ind_row, ind_col, ncores) {
     invisible(.Call(`_bigsnpr_readbina2`, BM, obj_bed, ind_row, ind_col, ncores))
+}
+
+sp_colSumsSq_sym <- function(p, i, x) {
+    .Call(`_bigsnpr_sp_colSumsSq_sym`, p, i, x)
 }
 
 writebina <- function(filename, BM, tab, rowInd, colInd) {

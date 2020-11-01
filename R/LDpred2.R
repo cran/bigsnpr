@@ -1,12 +1,18 @@
 ################################################################################
 
+#' @importFrom bigsparser as_SFBM
+#' @export
+bigsparser::as_SFBM
+
+################################################################################
+
 #' LDpred2
 #'
-#' LDpred2. Tutorial at \url{https://bit.ly/ldpred2}.
+#' LDpred2. Tutorial at \url{https://privefl.github.io/bigsnpr/articles/LDpred2.html}.
 #'
 #' @inheritParams snp_ldsc2
-#' @param corr Sparse correlation matrix as an [SFBM][SFBM-class]. If `corr` is
-#'   a dgSMatrix, you can use `bigsparser::as_SFBM(as(corr, "dgCMatrix"))`.
+#' @param corr Sparse correlation matrix as an [SFBM][SFBM-class].
+#'   If `corr` is a dsCMatrix or a dgCMatrix, you can use `as_SFBM(corr)`.
 #' @param h2 Heritability estimate.
 #'
 #' @return `snp_ldpred2_inf`: A vector of effects, assuming an infinitesimal model.
@@ -92,6 +98,9 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
 
 #' @param vec_p_init Vector of initial values for p. Default is `0.1`.
 #' @param h2_init Heritability estimate for initialization.
+#' @param sparse In LDpred2-auto, whether to also report a sparse solution by
+#'   running LDpred2-grid with the estimates of p and h2 from LDpred2-auto, and
+#'   sparsity enabled. Default is `FALSE`.
 #' @param verbose Whether to print "p // h2" estimates at each iteration.
 #'
 #' @return `snp_ldpred2_auto`: A list (over `vec_p_init`) of lists with
@@ -113,6 +122,7 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
                              vec_p_init = 0.1,
                              burn_in = 1000,
                              num_iter = 500,
+                             sparse = FALSE,
                              verbose = FALSE,
                              ncores = 1) {
 
@@ -131,7 +141,8 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
 
   bigparallelr::register_parallel(ncores)
 
-  foreach(p_init = vec_p_init) %dopar% {
+  foreach(p_init = vec_p_init,
+          .export = c("ldpred2_gibbs_auto", "ldpred2_gibbs")) %dopar% {
 
     ldpred_auto <- ldpred2_gibbs_auto(
       corr      = corr,
@@ -146,6 +157,23 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
       verbose   = verbose
     )
     ldpred_auto$beta_est <- drop(ldpred_auto$beta_est) * scale
+
+    if (sparse) {
+      beta_gibbs <- ldpred2_gibbs(
+        corr      = corr,
+        beta_hat  = beta_hat,
+        beta_init = beta_inf,
+        order     = order(beta_inf^2, decreasing = TRUE) - 1L,
+        n_vec     = N,
+        h2        = ldpred_auto$h2_est,
+        p         = ldpred_auto$p_est,
+        sparse    = TRUE,
+        burn_in   = 50,
+        num_iter  = 100,
+        ncores    = 1
+      )
+      ldpred_auto$beta_est_sparse <- drop(beta_gibbs) * scale
+    }
 
     ldpred_auto
   }

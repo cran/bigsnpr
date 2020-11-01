@@ -31,6 +31,10 @@ expect_message(matched2 <- snp_match(sumstats, info_snp, strand_flip = FALSE),
                "4 variants have been matched; 0 were flipped and 1 were reversed.")
 expect_equal(dim(matched2), c(4, 9))
 expect_equal(matched2$beta, sumstats$beta[c(1:2, 4:5)] * c(1, -1, 1, 1))
+expect_message(snp_match(data.table::as.data.table(sumstats), info_snp),
+               "4 variants have been matched; 1 were flipped and 1 were reversed.")
+expect_message(snp_match(sumstats, data.table::as.data.table(info_snp)),
+               "4 variants have been matched; 1 were flipped and 1 were reversed.")
 
 
 sumstats2 <- data.frame(
@@ -44,9 +48,7 @@ sumstats2 <- data.frame(
 
 expect_error(snp_match(sumstats2[-6], info_snp), "'chr, pos, a0, a1, beta'")
 expect_error(snp_match(sumstats2, info_snp[-5]), "'chr, pos, a0, a1'")
-expect_error(snp_match(sumstats2, info_snp),
-             "Not enough variants have been matched.")
-expect_equal(dim(snp_match(sumstats2, info_snp, match.min.prop = 0)), c(0, 9))
+expect_error(snp_match(sumstats2, info_snp), "No variant has been matched.")
 snp_info <- snp_match(sumstats2, info_snp, join_by_pos = FALSE)
 expect_equal(dim(snp_info), c(4, 9))
 expect_equal(snp_info$beta, c(1, -1, 1, 1))
@@ -55,6 +57,10 @@ expect_equal(snp_info[c(1:4, 8)], info_snp[snp_info$`_NUM_ID_`, ],
              check.attributes = FALSE)
 expect_equal(snp_info[c(1, 2, 5)], sumstats2[snp_info$`_NUM_ID_.ss`, c(1, 2, 5)],
              check.attributes = FALSE)
+expect_message(
+  snp_info <- snp_match(sumstats2[c(1, 1:6), ], info_snp, join_by_pos = FALSE),
+  "Some duplicates were removed.")
+expect_equal(dim(snp_info), c(3, 9))
 
 ################################################################################
 

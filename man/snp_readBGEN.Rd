@@ -58,9 +58,14 @@ For more information on this format, please visit
 
 This function is designed to read UK Biobank imputation files. This assumes
 that variants have been compressed with zlib, that there are only 2 possible
-alleles, and that each probability is stored on 8 bits.
-}
-\examples{
-# See e.g. https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R
+alleles, and that each probability is stored on 8 bits. For example, if you
+use \emph{qctool} to generate your own BGEN files, please make sure you are using
+options '\verb{-ofiletype bgen_v1.2 -bgen-bits 8}'.
 
+You can look at some example code from my papers on how to use this function:
+\itemize{
+\item https://github.com/privefl/paper-ldpred2/blob/master/code/prepare-genotypes.R#L1-L62
+\item https://github.com/privefl/paper4-bedpca/blob/master/code/missing-values-UKBB.R#L34-L75
+\item https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R
+}
 }

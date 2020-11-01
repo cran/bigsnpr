@@ -19,8 +19,6 @@ format_snp_id <- function(snp_id) {
 #'
 #' @return A data frame containing variant information.
 #'
-#' @importFrom magrittr %>%
-#'
 #' @export
 snp_readBGI <- function(bgifile, snp_id) {
 
@@ -31,14 +29,11 @@ snp_readBGI <- function(bgifile, snp_id) {
   # read variant information from index files
   db_con <- RSQLite::dbConnect(RSQLite::SQLite(), bgifile)
   on.exit(RSQLite::dbDisconnect(db_con), add = TRUE)
-  infos <- dplyr::tbl(db_con, "Variant") %>%
-    dplyr::mutate(
-      myid = paste(chromosome, position, allele1, allele2, sep = "_")) %>%
-    dplyr::filter(myid %in% snp_id) %>%
-    dplyr::collect()
+  infos <- dplyr::collect(dplyr::tbl(db_con, "Variant"))
 
   # check
-  ind <- match(snp_id, infos$myid)
+  infos$myid <- with(infos, paste(chromosome, position, allele1, allele2, sep = "_"))
+  ind <- match(snp_id, format_snp_id(infos$myid))
   if (anyNA(ind)) {
     saveRDS(snp_id[is.na(ind)],
             tmp <- sub("\\.bgen\\.bgi$", "_not_found.rds", bgifile))
@@ -59,7 +54,14 @@ snp_readBGI <- function(bgifile, snp_id) {
 #'
 #' This function is designed to read UK Biobank imputation files. This assumes
 #' that variants have been compressed with zlib, that there are only 2 possible
-#' alleles, and that each probability is stored on 8 bits.
+#' alleles, and that each probability is stored on 8 bits. For example, if you
+#' use *qctool* to generate your own BGEN files, please make sure you are using
+#' options '`-ofiletype bgen_v1.2 -bgen-bits 8`'.
+#'
+#' You can look at some example code from my papers on how to use this function:
+#' - https://github.com/privefl/paper-ldpred2/blob/master/code/prepare-genotypes.R#L1-L62
+#' - https://github.com/privefl/paper4-bedpca/blob/master/code/missing-values-UKBB.R#L34-L75
+#' - https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R
 #'
 #' @param bgenfiles Character vector of paths to files with extension ".bgen".
 #'   The corresponding ".bgen.bgi" index files must exist.
@@ -87,10 +89,6 @@ snp_readBGI <- function(bgifile, snp_id) {
 #' [snp_attach] to load the "bigSNP" object in any R session from backing files.
 #'
 #' @importFrom magrittr %>%
-#' @import foreach
-#'
-#' @examples
-#' # See e.g. https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R
 #'
 #' @export
 snp_readBGEN <- function(bgenfiles, backingfile, list_snp_id,
@@ -117,12 +115,23 @@ snp_readBGEN <- function(bgenfiles, backingfile, list_snp_id,
   assert_lengths(list_snp_id, bgenfiles)
   sizes <- lengths(list_snp_id)
 
+  # Check format
+  header <- readBin(bgenfiles[1], what = integer(), size = 4, n = 5)
+  bgen_int <- readBin(charToRaw("bgen"), what = integer(), size = 4)
+  if (!identical(header[5], bgen_int))
+    stop2("'%s' is not a BGEN file.", bgenfiles[1])
+  header_raw <- readBin(bgenfiles[1], what = raw(), n = 4 + header[2])
+  flags <- rawToBits(tail(header_raw, 4))
+  if (!identical(flags[1:2], rawToBits(as.raw(1))[1:2]))
+    stop2("'%s' is not compressed with zlib.", bgenfiles[1])
+  if (!identical(flags[3:6], rawToBits(as.raw(2))[1:4]))
+    stop2("'%s' is not using Layout 2.", bgenfiles[1])
+
   # Samples
-  if (is.null(ind_row)) {
-    N <- readBin(bgenfiles[1], what = 1L, size = 4, n = 4)[4]
-    ind_row <- seq_len(N)
-  }
+  N <- header[4]
+  if (is.null(ind_row)) ind_row <- seq_len(N)
   assert_nona(ind_row)
+  stopifnot(all(ind_row >= 1 & ind_row <= N))
 
   # Prepare Filebacked Big Matrix
   G <- FBM.code256(
@@ -138,7 +147,7 @@ snp_readBGEN <- function(bgenfiles, backingfile, list_snp_id,
   snp.info <- tryCatch(error = function(e) { unlink(G$backingfile); stop(e) }, {
 
     # Fill the FBM from BGEN files (and get SNP info)
-    foreach(ic = seq_along(bgenfiles), .combine = 'rbind') %do% {
+    do.call("rbind", lapply(seq_along(bgenfiles), function(ic) {
 
       snp_id <- format_snp_id(list_snp_id[[ic]])
       infos <- snp_readBGI(bgifiles[ic], snp_id)
@@ -147,20 +156,21 @@ snp_readBGEN <- function(bgenfiles, backingfile, list_snp_id,
       ind.col <- sum(sizes[seq_len(ic - 1)]) + seq_len(sizes[ic])
       ID <- read_bgen(
         filename = bgenfiles[ic],
-        offsets = as.double(infos$file_start_position),
-        BM = G,
-        ind_row = ind_row - 1L,
-        ind_col = ind.col,
-        decode = as.raw(207 - round(0:510 * 100 / 255)),
-        dosage = dosage,
-        ncores = ncores
+        offsets  = as.double(infos$file_start_position),
+        BM       = G,
+        ind_row  = ind_row - 1L,
+        ind_col  = ind.col,
+        decode   = as.raw(207 - round(0:510 * 100 / 255)),
+        dosage   = dosage,
+        N        = N,
+        ncores   = ncores
       )
 
       # Return variant info
       dplyr::bind_cols(infos, marker.ID = ID) %>%
         dplyr::select(chromosome, marker.ID, rsid, physical.pos = position,
                       allele1, allele2)
-    }
+    }))
   })
 
   # Create the bigSNP object
