@@ -14,7 +14,8 @@ snp_ldpred2_grid(
   grid_param,
   burn_in = 50,
   num_iter = 100,
-  ncores = 1
+  ncores = 1,
+  return_sampling_betas = FALSE
 )
 
 snp_ldpred2_auto(
@@ -58,6 +59,12 @@ They can be run in parallel by changing \code{ncores}.
 \item{ncores}{Number of cores used. Default doesn't use parallelism.
 You may use \link{nb_cores}.}
 
+\item{return_sampling_betas}{Whether to return all sampling betas (after
+burn-in)? This is useful for assessing the uncertainty of the PRS at the
+individual level (see \doi{10.1101/2020.11.30.403188}).
+Default is \code{FALSE} (only returns the averaged final vectors of betas).
+If \code{TRUE}, only one set of parameters is allowed.}
+
 \item{h2_init}{Heritability estimate for initialization.}
 
 \item{vec_p_init}{Vector of initial values for p. Default is \code{0.1}.}
@@ -72,17 +79,21 @@ sparsity enabled. Default is \code{FALSE}.}
 \code{snp_ldpred2_inf}: A vector of effects, assuming an infinitesimal model.
 
 \code{snp_ldpred2_grid}: A matrix of effect sizes, one vector (column)
-for each row of \code{grid_param}.
+for each row of \code{grid_param}. If using \code{return_sampling_betas}, each
+column corresponds to one iteration instead (after burn-in).
 
 \code{snp_ldpred2_auto}: A list (over \code{vec_p_init}) of lists with
 \itemize{
 \item \verb{$beta_est}: vector of effect sizes
+\item \verb{$beta_est_sparse} (only when \code{sparse = TRUE}): sparse vector of effect sizes
+\item \verb{$postp_est}: vector of posterior probabilities of being causal
 \item \verb{$p_est}: estimate of p, the proportion of causal variants
 \item \verb{$h2_est}: estimate of the (SNP) heritability (also see \link{coef_to_liab})
 \item \verb{$path_p_est}: full path of p estimates (including burn-in);
 useful to check convergence of the iterative algorithm
 \item \verb{$path_h2_est}: full path of h2 estimates (including burn-in);
 useful to check convergence of the iterative algorithm
+\item \verb{$h2_init} and \verb{$p_init}
 }
 }
 \description{

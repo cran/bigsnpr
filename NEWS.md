@@ -1,3 +1,33 @@
+## bigsnpr 1.6.1
+
+- Add option `file.type = "--gzvcf"` for using gzipped VCF in `snp_plinkQC()`.
+
+## bigsnpr 1.6.0
+
+- Finally remove function `snp_assocBGEN()`; prefer reading small parts with `snp_readBGEN()` as a temporary `bigSNP` object and do the association test with e.g. `big_univLinReg()`.
+
+## bigsnpr 1.5.7
+
+- Add function `snp_thr_correct()` for correcting for winner's curse in summary statistics when using p-value thresholding.
+
+## bigsnpr 1.5.6
+
+- Use a better formula for the scale in LDpred2, useful when there are some variants with very large effects (e.g. explaining more than 10% phenotypic variance).
+
+- Simplify LDpred2; there was not really any need for initialization and ordering of the Gibbs sampler.
+
+## bigsnpr 1.5.5
+
+- Add option `return_sampling_betas` in `snp_ldpred2_grid()` to return all sampling betas (after burn-in), which is useful for assessing the uncertainty of the PRS at the individual level (see https://doi.org/10.1101/2020.11.30.403188).
+
+## bigsparser 0.4.1
+
+- Faster cross-product with SFBM, which should make all LDpred2 models faster.
+
+## bigsnpr 1.5.4
+
+- Also return `$postp_est`, `$h2_init` and `$p_init` in LDpred2-auto.
+
 ## bigsnpr 1.5.1
 
 - Add multiple checks in `snp_readBGEN()` to make sure of the expected format.
