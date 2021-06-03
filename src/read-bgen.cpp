@@ -20,7 +20,9 @@ std::string read_variant(std::ifstream * ptr_stream,
                          const IntegerVector& ind_row,
                          const RawVector& decode,
                          bool dosage,
-                         int N) {
+                         int N,
+                         double * info,
+                         double * freq) {
 
   std::string id   = read_string(ptr_stream);
   std::string rsid = read_string(ptr_stream);
@@ -57,19 +59,31 @@ std::string read_variant(std::ifstream * ptr_stream,
 
   // read decompress "probabilities" and store them as rounded dosages or hard calls
   int n = ind_row.size();
+  int nona = n;
+  double af = 0, num = 0;
   for (int i = 0; i < n; i++) {
     int i_G = ind_row[i];
     int i_pld = 8 + i_G;
     if (buffer_out[i_pld] >= 0x80) {
       ptr_mat[i] = 3;  // missing
+      nona--;
     } else {
       // probabilities * 255
       int i_prblt = 10 + N + 2 * i_G;
       unsigned char p0 = buffer_out[i_prblt];
       unsigned char p1 = buffer_out[i_prblt + 1];
+      double e_ij = 2 * p0 + p1;
+      double f_ij = 4 * p0 + p1;
+      af += e_ij;
+      num += 255 * f_ij - e_ij * e_ij;
       ptr_mat[i] = dosage ? decode[2 * p0 + p1] : sample_from_prob(p0, p1);
     }
   }
+
+  // https://doi.org/10.1038/nrg2796
+  double coef = 255 * (2 * nona);
+  *info = 1 - num * 2 * nona / (af * (coef - af));
+  *freq = 1 - af / coef;
 
   delete[] buffer_in;
   delete[] buffer_out;
@@ -80,15 +94,15 @@ std::string read_variant(std::ifstream * ptr_stream,
 /******************************************************************************/
 
 // [[Rcpp::export]]
-CharacterVector read_bgen(std::string filename,
-                          NumericVector offsets,
-                          Environment BM,
-                          IntegerVector ind_row,
-                          IntegerVector ind_col,
-                          RawVector decode,
-                          bool dosage,
-                          int N,
-                          int ncores) {
+List read_bgen(std::string filename,
+               NumericVector offsets,
+               Environment BM,
+               IntegerVector ind_row,
+               IntegerVector ind_col,
+               RawVector decode,
+               bool dosage,
+               int N,
+               int ncores) {
 
   XPtr<FBM_RW> xpBM = BM["address_rw"];
   unsigned char* ptr_mat = static_cast<unsigned char*>(xpBM->matrix());
@@ -97,6 +111,7 @@ CharacterVector read_bgen(std::string filename,
   int K = offsets.size();
   myassert_size(ind_col.size(), K);
   CharacterVector ID(K);
+  std::vector<double> INFO(K, NA_REAL), FREQ(K, NA_REAL);
 
   #pragma omp parallel num_threads(ncores)
   {
@@ -110,7 +125,8 @@ CharacterVector read_bgen(std::string filename,
       stream.seekg(offsets[k]);
       std::size_t j = ind_col[k] - 1;
       std::string id = read_variant(&stream, ptr_mat + n * j,
-                                    ind_row, decode, dosage, N);
+                                    ind_row, decode, dosage, N,
+                                    &INFO[k], &FREQ[k]);
       #pragma omp critical
       ID[k] = id;
     }
@@ -118,7 +134,7 @@ CharacterVector read_bgen(std::string filename,
     stream.close();
   }
 
-  return ID;
+  return List::create(_["ID"] = ID, _["INFO"] = INFO, _["FREQ"] = FREQ);
 }
 
 /******************************************************************************/

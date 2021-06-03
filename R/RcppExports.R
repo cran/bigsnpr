@@ -53,16 +53,20 @@ replaceSNP <- function(BM, BM2, rowInd, colInd) {
     invisible(.Call(`_bigsnpr_replaceSNP`, BM, BM2, rowInd, colInd))
 }
 
-corMat <- function(BM, rowInd, colInd, size, thr, pos, ncores) {
-    .Call(`_bigsnpr_corMat`, BM, rowInd, colInd, size, thr, pos, ncores)
+corMat <- function(BM, rowInd, colInd, size, thr, pos, info, ncores) {
+    .Call(`_bigsnpr_corMat`, BM, rowInd, colInd, size, thr, pos, info, ncores)
 }
 
 impute <- function(BM, method, ncores) {
     invisible(.Call(`_bigsnpr_impute`, BM, method, ncores))
 }
 
-ldpred2_gibbs_auto <- function(corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, verbose = FALSE) {
-    .Call(`_bigsnpr_ldpred2_gibbs_auto`, corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, verbose)
+lassosum2 <- function(corr, beta_hat, lambda, delta, dfmax, maxiter, tol) {
+    .Call(`_bigsnpr_lassosum2`, corr, beta_hat, lambda, delta, dfmax, maxiter, tol)
+}
+
+ldpred2_gibbs_auto <- function(corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, report_step, verbose = FALSE) {
+    .Call(`_bigsnpr_ldpred2_gibbs_auto`, corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, report_step, verbose)
 }
 
 ldpred2_gibbs_one_sampling <- function(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter) {
@@ -91,6 +95,14 @@ readbina2 <- function(BM, obj_bed, ind_row, ind_col, ncores) {
 
 sp_colSumsSq_sym <- function(p, i, x) {
     .Call(`_bigsnpr_sp_colSumsSq_sym`, p, i, x)
+}
+
+get_L <- function(p, i, x, thr_r2) {
+    .Call(`_bigsnpr_get_L`, p, i, x, thr_r2)
+}
+
+get_C <- function(L, min_size, max_size, K) {
+    .Call(`_bigsnpr_get_C`, L, min_size, max_size, K)
 }
 
 writebina <- function(filename, BM, tab, rowInd, colInd) {

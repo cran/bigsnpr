@@ -27,6 +27,7 @@ snp_ldpred2_auto(
   num_iter = 500,
   sparse = FALSE,
   verbose = FALSE,
+  report_step = num_iter + 1L,
   ncores = 1
 )
 }
@@ -74,18 +75,24 @@ running LDpred2-grid with the estimates of p and h2 from LDpred2-auto, and
 sparsity enabled. Default is \code{FALSE}.}
 
 \item{verbose}{Whether to print "p // h2" estimates at each iteration.}
+
+\item{report_step}{Step to report sampling betas (after burn-in and before
+unscaling). Nothing is reported by default. If using \code{num_iter = 500} and
+\code{report_step = 50}, then 10 vectors of betas are reported.}
 }
 \value{
 \code{snp_ldpred2_inf}: A vector of effects, assuming an infinitesimal model.
 
 \code{snp_ldpred2_grid}: A matrix of effect sizes, one vector (column)
-for each row of \code{grid_param}. If using \code{return_sampling_betas}, each
-column corresponds to one iteration instead (after burn-in).
+for each row of \code{grid_param}. Missing values are returned when strong
+divergence is detected. If using \code{return_sampling_betas}, each column
+corresponds to one iteration instead (after burn-in).
 
 \code{snp_ldpred2_auto}: A list (over \code{vec_p_init}) of lists with
 \itemize{
 \item \verb{$beta_est}: vector of effect sizes
 \item \verb{$beta_est_sparse} (only when \code{sparse = TRUE}): sparse vector of effect sizes
+\item \verb{$sample_beta}: Matrix of sampling betas (see parameter \code{report_step})
 \item \verb{$postp_est}: vector of posterior probabilities of being causal
 \item \verb{$p_est}: estimate of p, the proportion of causal variants
 \item \verb{$h2_est}: estimate of the (SNP) heritability (also see \link{coef_to_liab})

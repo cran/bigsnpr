@@ -55,6 +55,7 @@ ggplot
 GigaScience
 github
 GWAS
+gzipped
 HapMap
 heritability
 Hinrichs
@@ -66,6 +67,7 @@ Jiali
 Josyf
 Kathe
 kb
+lassosum
 LD
 ldpred
 LDpred
@@ -123,6 +125,7 @@ reproducibility
 Roeder
 rOpenSci
 rsid
+rsIDs
 rsnps
 RSpectra
 scalable
@@ -135,12 +138,14 @@ svds
 Tcrossprod
 Tellier
 th
+tibble
 tmp
 UCSC
 UKBB
 UKBiobank
 univLinReg
 univLogReg
+unscaling
 Vattikuti
 VCF
 Weale

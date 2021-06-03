@@ -1,8 +1,10 @@
-[![Travis-CI Build Status](https://travis-ci.org/privefl/bigsnpr.svg?branch=master)](https://travis-ci.org/privefl/bigsnpr)
+<!-- badges: start -->
+[![R build status](https://github.com/privefl/bigsnpr/workflows/R-CMD-check/badge.svg)](https://github.com/privefl/bigsnpr/actions)
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/privefl/bigsnpr?branch=master&svg=true)](https://ci.appveyor.com/project/privefl/bigsnpr)
 [![Coverage Status](https://img.shields.io/codecov/c/github/privefl/bigsnpr/master.svg)](https://codecov.io/github/privefl/bigsnpr)
 [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/bigsnpr)](https://CRAN.R-project.org/package=bigsnpr)
 [![DOI](https://zenodo.org/badge/doi/10.1093/bioinformatics/bty185.svg)](http://dx.doi.org/10.1093/bioinformatics/bty185)
+<!-- badges: end -->
  
  
 # bigsnpr
@@ -42,9 +44,9 @@ This package can also read **UK Biobank BGEN files** using function `snp_readBGE
 
 This package uses a class called `bigSNP` for representing SNP data. A `bigSNP` object is a list with some elements:
 
-- `genotypes`: A [`FBM.code256`](https://privefl.github.io/bigstatsr/reference/FBM.code256-class.html). Rows are samples and columns are SNPs. This stores genotype calls or **dosages** (rounded to 2 decimal places).
-- `fam`: A `data.frame` with some information on the SNPs.
-- `map`: A `data.frame` with some information on the individuals.
+- `genotypes`: A [`FBM.code256`](https://privefl.github.io/bigstatsr/reference/FBM.code256-class.html). Rows are samples and columns are variants. This stores genotype calls or **dosages** (rounded to 2 decimal places).
+- `fam`: A `data.frame` with some information on the individuals.
+- `map`: A `data.frame` with some information on the variants.
 
 **New!** Package {bigsnpr} now provides functions that directly work on bed files with a few missing values. See new paper "Efficient toolkit implementing..".
 

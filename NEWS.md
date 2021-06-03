@@ -1,3 +1,53 @@
+## bigsnpr 1.8.0
+
+- Replace parameter `s` by `delta` in `snp_lassosum2()`. This new parameter `delta` better reflects that the lassosum model also uses L2-regularization (therefore, elastic-net regularization).
+
+- Now detect strong divergence in lassosum2 and LDpred2-grid, and return missing values for the corresponding effect sizes.
+
+## bigsnpr 1.7.4
+
+- Now use a better formula for computing standard errors in `snp_ldsc()` when using blocks with different sizes.
+
+## bigsnpr 1.7.3
+
+- Add parameter `info` to `snp_cor()` to correct correlations when they are computed from imputed dosage data.
+
+## bigsnpr 1.7.2
+
+- Function `snp_readBGEN()` now also returns frequencies and imputation INFO scores.
+
+## bigsnpr 1.7.1
+
+- Add parameter `rsid` to `snp_asGeneticPos()` to also allow matching with rsIDs.
+
+## bigsnpr 1.7.0
+
+- Add function `snp_lassosum2()` to train the lassosum models using the exact same input data as LDpred2.
+
+## bigsnpr 1.6.7
+
+- Add parameter `report_step` in `snp_ldpred2_auto()` to report some of the internal sampling betas.
+
+## bigsnpr 1.6.6
+
+- Fix crash in `snp_readBGEN()` when using BGEN files containing `~`.
+
+## bigsnpr 1.6.5
+
+- Add parameter `thr_r2` in `snp_cor()`.
+
+## bigsnpr 1.6.4
+
+- Remove penalization in `snp_ldsplit()`. Instead, report the best splits for a range of numbers of blocks desired.
+
+## bigsnpr 1.6.3
+
+- Penalization in `snp_ldsplit()` now makes more sense. Also fix a small bug that prevented splitting the last block in some cases.
+
+## bigsnpr 1.6.2
+
+- Add function `snp_ldsplit()` for optimally splitting variants in nearly independent blocks of LD. 
+
 ## bigsnpr 1.6.1
 
 - Add option `file.type = "--gzvcf"` for using gzipped VCF in `snp_plinkQC()`.

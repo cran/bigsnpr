@@ -24,6 +24,7 @@ ind_val <- bigsnpr:::corMat(BM = G,
                             size = size,
                             thr = rep(r, n),
                             pos = seq_along(ind.col),
+                            info = rep(1, length(ind.col)),
                             ncores = 2)
 
 list_i <- lapply(ind_val, function(.) .$i)
@@ -96,6 +97,17 @@ test_that("Same correlations as Hmisc (with significance levels)", {
   expect_equal(dim(corr2), c(m, m))
   expect_equal(corr2[ind], true$r[ind])
   expect_equal(2*length(corr2@i), length(ind))
+
+  # with additional threshold
+  corr3 <- snp_cor(G = test$genotypes,
+                   ind.row = ind.row,
+                   ind.col = ind.col,
+                   alpha = alpha,
+                   thr_r2 = 0.02,
+                   fill.diag = TRUE)
+
+  expect_equal(dim(corr3), c(m, m))
+  expect_gte(min(corr3@x^2), 0.02)
 })
 
 ################################################################################
@@ -124,6 +136,21 @@ test_that("Information on position is used in snp_cor()", {
                    alpha = alpha, fill.diag = FALSE, size = 5e-3,
                    infos.pos = 1000 * seq_along(ind.col))
   expect_length(corr6@x, 0)
+})
+
+################################################################################
+
+test_that("INFO scores used in snp_cor()", {
+
+  corr7 <- snp_cor(G = test$genotypes, ind.row = ind.row, ind.col = ind.col,
+                   fill.diag = FALSE)
+  info <- runif(length(ind.col), min = 0.5)
+
+  corr8 <- snp_cor(G = test$genotypes, ind.row = ind.row, ind.col = ind.col,
+                   fill.diag = FALSE, info = info)
+
+  expect_equal(as(corr8, "dgeMatrix"),
+               sweep(sweep(corr7, 1, sqrt(info), '*'), 2, sqrt(info), '*'))
 })
 
 ################################################################################
