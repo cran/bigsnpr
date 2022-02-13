@@ -9,7 +9,8 @@ snp_asGeneticPos(
   infos.pos,
   dir = tempdir(),
   ncores = 1,
-  rsid = NULL
+  rsid = NULL,
+  type = c("OMNI", "hapmap")
 )
 }
 \arguments{
@@ -21,7 +22,8 @@ on a chromosome (in base pairs) of each SNP.\cr
 Typically \verb{<bigSNP>$map$physical.pos}.}
 
 \item{dir}{Directory where to download and decompress files.
-Default is \code{tempdir()}. Directly use files there if already present.}
+Default is \code{tempdir()}. Directly use \emph{uncompressed} files there if already
+present. You can use \code{\link[R.utils:compressFile]{R.utils::gunzip()}} to uncompress local files.}
 
 \item{ncores}{Number of cores used. Default doesn't use parallelism.
 You may use \link{nb_cores}.}
@@ -29,6 +31,9 @@ You may use \link{nb_cores}.}
 \item{rsid}{If providing rsIDs, the matching is performed using those
 (instead of positions) and variants not matched are interpolated using
 spline interpolation of variants that have been matched.}
+
+\item{type}{Whether to use the genetic maps interpolated from "OMNI"
+(the default), or from "hapmap".}
 }
 \value{
 The new vector of genetic positions.

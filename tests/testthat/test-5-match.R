@@ -36,6 +36,12 @@ expect_message(snp_match(data.table::as.data.table(sumstats), info_snp),
 expect_message(snp_match(sumstats, data.table::as.data.table(info_snp)),
                "4 variants have been matched; 1 were flipped and 1 were reversed.")
 
+expect_message(matched3 <- snp_match(sumstats, info_snp, return_flip_and_rev = TRUE),
+               "4 variants have been matched; 1 were flipped and 1 were reversed.")
+expect_equal(dim(matched3), c(4, 11))
+expect_equal(matched3[["_FLIP_"]], c(FALSE, FALSE,  TRUE, FALSE))
+expect_equal(matched3[["_REV_"]],  c(FALSE,  TRUE, FALSE, FALSE))
+
 
 sumstats2 <- data.frame(
   chr = 1,
@@ -70,7 +76,6 @@ expect_equal(same_ref(ref1 = info_snp$a1, alt1 = info_snp$a0,
 
 ################################################################################
 
-
 test_that("snp_asGeneticPos() works", {
 
   info <- data.frame(
@@ -92,6 +97,33 @@ test_that("snp_asGeneticPos() works", {
   expect_equal(res2[-3], map$V3)
   expect_gt(res2[3], res2[2])
   expect_lt(res2[3], res2[4])
+
+  skip_if(is_cran)
+  skip_on_covr()
+  skip_if_offline("raw.githubusercontent.com")
+
+  info2 <- data.frame(chr = 22, pos = 18206376)
+  res3 <- snp_asGeneticPos(info2$chr, info2$pos, dir = tempdir())
+  expect_equal(res3, 3.682628, tolerance = 1e-5)
+  res4 <- snp_asGeneticPos(info2$chr, info2$pos, dir = tempdir(), type = "hapmap")
+  expect_equal(res4, 5.905713, tolerance = 1e-5)
+})
+
+################################################################################
+
+test_that("snp_ancestry_summary() works (with no projection here)", {
+
+  X <- matrix(rbeta(4000, 1, 3), ncol = 4)
+  prop <- c(0.2, 0.1, 0.6, 0.1)
+  y <- X %*% prop
+  res <- snp_ancestry_summary(y, X, Matrix::Diagonal(nrow(X), 1), rep(1, nrow(X)))
+  expect_equal(res, prop)
+
+  expect_warning(res2 <- snp_ancestry_summary(
+    y, X[, -1], Matrix::Diagonal(nrow(X), 1), rep(1, nrow(X))),
+    "The solution does not perfectly match the frequencies.")
+  expect_true(all(res2 > prop[-1]))
+  expect_equal(res2, prop[-1], tolerance = 0.1)
 })
 
 ################################################################################

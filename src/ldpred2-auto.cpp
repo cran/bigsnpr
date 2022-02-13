@@ -26,6 +26,8 @@ List ldpred2_gibbs_auto(Environment corr,
                         int burn_in,
                         int num_iter,
                         int report_step,
+                        bool allow_jump_sign,
+                        double shrink_corr,
                         bool verbose = false) {
 
   XPtr<SFBM> sfbm = corr["address"];
@@ -39,6 +41,7 @@ List ldpred2_gibbs_auto(Environment corr,
 
   arma::vec curr_beta(beta_init.begin(), m);
   arma::vec avg_beta(m, arma::fill::zeros), avg_postp(m, arma::fill::zeros);
+  arma::vec avg_beta_hat(m, arma::fill::zeros);
 
   arma::mat sample_beta(m, num_iter / report_step, arma::fill::zeros);
   int ind_report = 0, next_k_reported = burn_in - 1 + report_step;
@@ -58,7 +61,7 @@ List ldpred2_gibbs_auto(Environment corr,
     for (const int& j : order) {
 
       double dotprod = sfbm->dot_col(j, curr_beta);
-      double res_beta_hat_j = beta_hat[j] + curr_beta[j] - dotprod;
+      double res_beta_hat_j = beta_hat[j] + shrink_corr * (curr_beta[j] - dotprod);
 
       double C1 = h2_per_var * n_vec[j];
       double C2 = 1 / (1 + 1 / C1);
@@ -68,20 +71,37 @@ List ldpred2_gibbs_auto(Environment corr,
       double postp = 1 /
         (1 + inv_odd_p * ::sqrt(1 + C1) * ::exp(-square(C3 / C4) / 2));
 
+      double prev_beta = curr_beta[j];
+      double dotprod_shrunk = shrink_corr * dotprod + (1 - shrink_corr) * prev_beta;
+
       if (k >= burn_in) {
-        avg_postp[j] += postp;
-        avg_beta[j]  += C3 * postp;
+        avg_postp[j]    += postp;
+        avg_beta[j]     += C3 * postp;
+        avg_beta_hat[j] += dotprod_shrunk;
       }
 
-      double diff = -curr_beta[j];
+      double diff = -prev_beta;
       if (postp > ::unif_rand()) {
-        curr_beta[j] = ::Rf_rnorm(C3, C4);
-        diff += curr_beta[j];
-        nb_causal++;
+
+        double samp_beta = ::Rf_rnorm(C3, C4);
+
+        if (!allow_jump_sign && (samp_beta * prev_beta) < 0) {
+          curr_beta[j] = 0;
+          if (k >= burn_in) {
+            avg_postp[j] -= postp;
+            avg_beta[j]  -= C3 * postp;
+          }
+        } else {
+          curr_beta[j] = samp_beta;
+          diff += samp_beta;
+          nb_causal++;
+        }
+
       } else {
         curr_beta[j] = 0;
       }
-      cur_h2_est += diff * (2 * dotprod + diff);
+
+      cur_h2_est += diff * (2 * dotprod_shrunk + diff);
     }
 
     p = std::max(::Rf_rbeta(1 + nb_causal, 1 + m - nb_causal), MIN_P);
@@ -105,8 +125,9 @@ List ldpred2_gibbs_auto(Environment corr,
   if (verbose) Rcout << "Overall: " << est_p << " // " << est_h2 << std::endl;
 
   return List::create(
-    _["beta_est"]    = avg_beta  / num_iter,
-    _["postp_est"]   = avg_postp / num_iter,
+    _["beta_est"]    = avg_beta     / num_iter,
+    _["postp_est"]   = avg_postp    / num_iter,
+    _["corr_est"]    = avg_beta_hat / num_iter,
     _["sample_beta"] = sample_beta,
     _["p_est"]       = est_p,
     _["h2_est"]      = est_h2,

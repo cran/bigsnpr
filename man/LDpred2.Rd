@@ -23,11 +23,13 @@ snp_ldpred2_auto(
   df_beta,
   h2_init,
   vec_p_init = 0.1,
-  burn_in = 1000,
-  num_iter = 500,
+  burn_in = 500,
+  num_iter = 200,
   sparse = FALSE,
   verbose = FALSE,
   report_step = num_iter + 1L,
+  allow_jump_sign = TRUE,
+  shrink_corr = 1,
   ncores = 1
 )
 }
@@ -74,11 +76,23 @@ If \code{TRUE}, only one set of parameters is allowed.}
 running LDpred2-grid with the estimates of p and h2 from LDpred2-auto, and
 sparsity enabled. Default is \code{FALSE}.}
 
-\item{verbose}{Whether to print "p // h2" estimates at each iteration.}
+\item{verbose}{Whether to print "p // h2" estimates at each iteration.
+Disabled when parallelism is used.}
 
 \item{report_step}{Step to report sampling betas (after burn-in and before
-unscaling). Nothing is reported by default. If using \code{num_iter = 500} and
-\code{report_step = 50}, then 10 vectors of betas are reported.}
+unscaling). Nothing is reported by default. If using \code{num_iter = 200} and
+\code{report_step = 20}, then 10 vectors of betas are reported.}
+
+\item{allow_jump_sign}{Whether to allow for effects sizes to change sign in
+consecutive iterations? Default is \code{TRUE} (normal sampling). You can use
+\code{FALSE} to force effects to go through 0 first before changing sign. Setting
+this parameter to \code{FALSE} could be useful to prevent instability (oscillation
+and ultimately divergence) of the Gibbs sampler. This would also be useful
+for accelerating convergence of chains with a large initial value for p.}
+
+\item{shrink_corr}{Shrinkage multiplicative coefficient to apply to off-diagonal
+elements of the correlation matrix. Default is \code{1} (unchanged).
+You can use e.g. \code{0.9}.}
 }
 \value{
 \code{snp_ldpred2_inf}: A vector of effects, assuming an infinitesimal model.
@@ -90,9 +104,14 @@ corresponds to one iteration instead (after burn-in).
 
 \code{snp_ldpred2_auto}: A list (over \code{vec_p_init}) of lists with
 \itemize{
-\item \verb{$beta_est}: vector of effect sizes
+\item \verb{$beta_est}: vector of effect sizes (on the allele scale)
 \item \verb{$beta_est_sparse} (only when \code{sparse = TRUE}): sparse vector of effect sizes
-\item \verb{$sample_beta}: Matrix of sampling betas (see parameter \code{report_step})
+\item \verb{$corr_est}, the "imputed" correlations between variants and phenotypes,
+which can be used for post-QCing variants by comparing those to
+\code{with(df_beta, beta / sqrt(n_eff * beta_se^2 + beta^2))}
+\item \verb{$sample_beta}: Matrix of sampling betas (see parameter \code{report_step}),
+\emph{not} on the allele scale, for which you need to multiply by
+\code{with(df_beta, sqrt(n_eff * beta_se^2 + beta^2))}
 \item \verb{$postp_est}: vector of posterior probabilities of being causal
 \item \verb{$p_est}: estimate of p, the proportion of causal variants
 \item \verb{$h2_est}: estimate of the (SNP) heritability (also see \link{coef_to_liab})
@@ -100,7 +119,7 @@ corresponds to one iteration instead (after burn-in).
 useful to check convergence of the iterative algorithm
 \item \verb{$path_h2_est}: full path of h2 estimates (including burn-in);
 useful to check convergence of the iterative algorithm
-\item \verb{$h2_init} and \verb{$p_init}
+\item \verb{$h2_init} and \verb{$p_init}, input parameters for convenience
 }
 }
 \description{

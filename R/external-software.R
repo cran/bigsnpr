@@ -302,7 +302,7 @@ snp_plinkRmSamples <- function(plink.path,
   if (is.data.frame(df.or.files)) {
     data.infos <- df.or.files
   } else if (is.character(df.or.files)) {
-    data.infos <- bigreadr::fread2(df.or.files, ...)
+    data.infos <- bigreadr::fread2(df.or.files, ..., nThread = 1)
   } else {
     stop2("'df.or.files' must be a data.frame or a vector of file paths.")
   }
@@ -436,7 +436,7 @@ snp_plinkIBDQC <- function(plink.path,
   )
 
   # get genomefile as a data.frame
-  tmp <- bigreadr::fread2(genome_file)
+  tmp <- bigreadr::fread2(genome_file, nThread = ncores)
   if (nrow(tmp) > 0) { # if there are samples to filter
 
     if (do.blind.QC) {
@@ -555,7 +555,8 @@ snp_plinkKINGQC <- function(plink2.path,
       verbose = verbose
     )
 
-    rel_df <- bigreadr::fread2(paste0(prefix.out, ".kin0"), header = TRUE)
+    rel_df <- bigreadr::fread2(paste0(prefix.out, ".kin0"), header = TRUE,
+                               nThread = ncores)
     names(rel_df) <- sub("^#(.*)$", "\\1", names(rel_df))
     rel_df
 
@@ -627,7 +628,7 @@ snp_beagleImpute <- function(beagle.path,
     verbose = verbose
   )
   vcf1 <- paste0(tmpfile1, ".vcf.gz")
-  on.exit(file.remove(vcf1), add = TRUE)
+  on.exit(file.remove(vcf1), add = TRUE, after = FALSE)
 
   # Impute vcf with Beagle version 4
   system_verbose(
@@ -642,7 +643,7 @@ snp_beagleImpute <- function(beagle.path,
     verbose = verbose
   )
   vcf2 <- paste0(tmpfile2, ".vcf.gz")
-  on.exit(file.remove(vcf2), add = TRUE)
+  on.exit(file.remove(vcf2), add = TRUE, after = FALSE)
 
   # Convert back vcf to bed/bim/fam
   system_verbose(

@@ -24,6 +24,7 @@ for the cache of the \link[=bigSNP-class]{bigSNP} object.}
 \item{list_snp_id}{List (same length as the number of BGEN files) of
 character vector of SNP IDs to read. These should be in the form
 \code{"<chr>_<pos>_<a1>_<a2>"} (e.g. \code{"1_88169_C_T"} or \code{"01_88169_C_T"}).
+If you have one BGEN file only, just wrap your vector of IDs with \code{list()}.
 \strong{This function assumes that these IDs are uniquely identifying variants.}}
 
 \item{ind_row}{An optional vector of the row indices (individuals) that
@@ -62,10 +63,15 @@ alleles, and that each probability is stored on 8 bits. For example, if you
 use \emph{qctool} to generate your own BGEN files, please make sure you are using
 options '\verb{-ofiletype bgen_v1.2 -bgen-bits 8}'.
 
+If the format is not the expected one, this will result in an error or even
+a crash of your R session. Another common source of error is due to corrupted
+files; e.g. if using UK Biobank files, compare the result of \code{\link[tools:md5sum]{tools::md5sum()}}
+with the ones at \url{https://biobank.ndph.ox.ac.uk/ukb/refer.cgi?id=998}.
+
 You can look at some example code from my papers on how to use this function:
 \itemize{
-\item https://github.com/privefl/paper-ldpred2/blob/master/code/prepare-genotypes.R#L1-L62
-\item https://github.com/privefl/paper4-bedpca/blob/master/code/missing-values-UKBB.R#L34-L75
-\item https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R
+\item \url{https://github.com/privefl/paper-ldpred2/blob/master/code/prepare-genotypes.R#L1-L62}
+\item \url{https://github.com/privefl/paper4-bedpca/blob/master/code/missing-values-UKBB.R#L34-L75}
+\item \url{https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R}
 }
 }

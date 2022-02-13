@@ -24,11 +24,10 @@ public:
     IntegerVector num = IntegerVector::create(2, NA_VAL, 1, 0);
     IntegerMatrix code(4, 256);
 
-    int i, k, k2;
     int coeff = 1;
-    for (i = 0; i < 4; i++) {
-      for (k = 0; k < 256; k++) {
-        k2 = k / coeff;
+    for (int i = 0; i < 4; i++) {
+      for (int k = 0; k < 256; k++) {
+        int k2 = k / coeff;  // integer division
         code(i, k) = num[k2 % 4];
       }
       coeff *= 4;
@@ -54,11 +53,12 @@ class bedAcc {
 public:
   bedAcc(bed * bedPtr,
          const IntegerVector& ind_row,
-         const IntegerVector& ind_col) {
+         const IntegerVector& ind_col,
+         int NA_VAL = 3) {
 
-    n_byte = bedPtr->nbyte();           // n_samples / 4
-    _pMat = 3 + bedPtr->matrix();       // first 3 bytes are magic numbers
-    _lookup_byte = bedPtr->get_code();  // decode 1 byte into 4 genotypes
+    n_byte = bedPtr->nbyte();                 // n_samples / 4
+    _pMat = 3 + bedPtr->matrix();             // first 3 bytes are magic numbers
+    _lookup_byte = bedPtr->get_code(NA_VAL);  // decode 1 byte into 4 genotypes
 
     // Indices of sub-view of bed file
     _ind_row = vec_int_to_size(ind_row, bedPtr->ntot(), 1);

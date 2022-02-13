@@ -16,11 +16,14 @@ format_snp_id <- function(snp_id) {
 #' @param snp_id Character vector of SNP IDs. These should be in the form
 #'  `"<chr>_<pos>_<a1>_<a2>"` (e.g. `"1_88169_C_T"` or `"01_88169_C_T"`).
 #'  **This function assumes that these IDs are uniquely identifying variants.**
+#'  Default is `NULL`, and returns information on all variants.
 #'
 #' @return A data frame containing variant information.
 #'
+#' @importFrom magrittr %>%
+#'
 #' @export
-snp_readBGI <- function(bgifile, snp_id) {
+snp_readBGI <- function(bgifile, snp_id = NULL) {
 
   # check for packages
   assert_package("RSQLite")
@@ -28,19 +31,54 @@ snp_readBGI <- function(bgifile, snp_id) {
 
   # read variant information from index files
   db_con <- RSQLite::dbConnect(RSQLite::SQLite(), bgifile)
-  on.exit(RSQLite::dbDisconnect(db_con), add = TRUE)
-  infos <- dplyr::collect(dplyr::tbl(db_con, "Variant"))
+  on.exit(RSQLite::dbDisconnect(db_con), add = TRUE, after = FALSE)
 
-  # check
-  infos$myid <- with(infos, paste(chromosome, position, allele1, allele2, sep = "_"))
-  ind <- match(snp_id, format_snp_id(infos$myid))
-  if (anyNA(ind)) {
-    saveRDS(snp_id[is.na(ind)],
-            tmp <- sub("\\.bgen\\.bgi$", "_not_found.rds", bgifile))
-    stop2("Some variants have not been found (stored in '%s').", tmp)
+  if (is.null(snp_id)) {
+
+    dplyr::tbl(db_con, "Variant") %>%
+      dplyr::mutate(file_start_position = as.double(file_start_position)) %>%
+      dplyr::collect()
+
+  } else {
+
+    snp_id <- format_snp_id(snp_id)
+    snp_pos <- as.integer(sub("^[[:alnum:]]{2}_([[:digit:]]+)_.+$", "\\1", snp_id))
+    info <- dplyr::tbl(db_con, "Variant") %>%
+      dplyr::filter(position %in% snp_pos) %>%
+      dplyr::mutate(file_start_position = as.double(file_start_position)) %>%
+      dplyr::collect()
+
+    # check
+    info_id <- with(info, paste(chromosome, position, allele1, allele2, sep = "_"))
+    ind <- match(snp_id, format_snp_id(info_id))
+    if (anyNA(ind)) {
+      saveRDS(snp_id[is.na(ind)],
+              tmp <- sub("\\.bgen\\.bgi$", "_not_found.rds", bgifile))
+      stop2("Some variants have not been found (stored in '%s').", tmp)
+    }
+
+    info[ind, ]
+
   }
+}
 
-  infos[ind, ]
+################################################################################
+
+check_bgen_format <- function(bgenfile) {
+
+  header <- readBin(bgenfile, what = integer(), size = 4, n = 5)
+  bgen_int <- readBin(charToRaw("bgen"), what = integer(), size = 4)
+  if (!identical(header[5], bgen_int))
+    stop2("'%s' is not a BGEN file.", bgenfile)
+
+  header_raw <- readBin(bgenfile, what = raw(), n = 4 + header[2])
+  flags <- rawToBits(tail(header_raw, 4))
+  if (!identical(flags[1:2], rawToBits(as.raw(1))[1:2]))
+    stop2("'%s' is not compressed with zlib.", bgenfile)
+  if (!identical(flags[3:6], rawToBits(as.raw(2))[1:4]))
+    stop2("'%s' is not using Layout 2.", bgenfile)
+
+  N <- header[4]
 }
 
 ################################################################################
@@ -58,10 +96,15 @@ snp_readBGI <- function(bgifile, snp_id) {
 #' use *qctool* to generate your own BGEN files, please make sure you are using
 #' options '`-ofiletype bgen_v1.2 -bgen-bits 8`'.
 #'
+#' If the format is not the expected one, this will result in an error or even
+#' a crash of your R session. Another common source of error is due to corrupted
+#' files; e.g. if using UK Biobank files, compare the result of [tools::md5sum()]
+#' with the ones at \url{https://biobank.ndph.ox.ac.uk/ukb/refer.cgi?id=998}.
+#'
 #' You can look at some example code from my papers on how to use this function:
-#' - https://github.com/privefl/paper-ldpred2/blob/master/code/prepare-genotypes.R#L1-L62
-#' - https://github.com/privefl/paper4-bedpca/blob/master/code/missing-values-UKBB.R#L34-L75
-#' - https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R
+#' - \url{https://github.com/privefl/paper-ldpred2/blob/master/code/prepare-genotypes.R#L1-L62}
+#' - \url{https://github.com/privefl/paper4-bedpca/blob/master/code/missing-values-UKBB.R#L34-L75}
+#' - \url{https://github.com/privefl/UKBiobank/blob/master/10-get-dosages.R}
 #'
 #' @param bgenfiles Character vector of paths to files with extension ".bgen".
 #'   The corresponding ".bgen.bgi" index files must exist.
@@ -70,6 +113,7 @@ snp_readBGI <- function(bgifile, snp_id) {
 #' @param list_snp_id List (same length as the number of BGEN files) of
 #'  character vector of SNP IDs to read. These should be in the form
 #'  `"<chr>_<pos>_<a1>_<a2>"` (e.g. `"1_88169_C_T"` or `"01_88169_C_T"`).
+#'  If you have one BGEN file only, just wrap your vector of IDs with `list()`.
 #'  **This function assumes that these IDs are uniquely identifying variants.**
 #' @param bgi_dir Directory of index files. Default is the same as `bgenfiles`.
 #' @param ind_row An optional vector of the row indices (individuals) that
@@ -116,20 +160,10 @@ snp_readBGEN <- function(bgenfiles, backingfile, list_snp_id,
   assert_lengths(list_snp_id, bgenfiles)
   sizes <- lengths(list_snp_id)
 
-  # Check format
-  header <- readBin(bgenfiles[1], what = integer(), size = 4, n = 5)
-  bgen_int <- readBin(charToRaw("bgen"), what = integer(), size = 4)
-  if (!identical(header[5], bgen_int))
-    stop2("'%s' is not a BGEN file.", bgenfiles[1])
-  header_raw <- readBin(bgenfiles[1], what = raw(), n = 4 + header[2])
-  flags <- rawToBits(tail(header_raw, 4))
-  if (!identical(flags[1:2], rawToBits(as.raw(1))[1:2]))
-    stop2("'%s' is not compressed with zlib.", bgenfiles[1])
-  if (!identical(flags[3:6], rawToBits(as.raw(2))[1:4]))
-    stop2("'%s' is not using Layout 2.", bgenfiles[1])
-
-  # Samples
-  N <- header[4]
+  # Check format of BGEN files + check samples
+  all_N <- sapply(bgenfiles, check_bgen_format)
+  N <- all_N[1]
+  bigassertr::assert_all(all_N, N)
   if (is.null(ind_row)) ind_row <- seq_len(N)
   assert_nona(ind_row)
   stopifnot(all(ind_row >= 1 & ind_row <= N))
@@ -150,14 +184,13 @@ snp_readBGEN <- function(bgenfiles, backingfile, list_snp_id,
     # Fill the FBM from BGEN files (and get SNP info)
     do.call("rbind", lapply(seq_along(bgenfiles), function(ic) {
 
-      snp_id <- format_snp_id(list_snp_id[[ic]])
-      infos <- snp_readBGI(bgifiles[ic], snp_id)
+      info <- snp_readBGI(bgifiles[ic], list_snp_id[[ic]])
 
       # Get dosages in FBM
       ind.col <- sum(sizes[seq_len(ic - 1)]) + seq_len(sizes[ic])
       varinfo <- read_bgen(
         filename = bgenfiles[ic],
-        offsets  = as.double(infos$file_start_position),
+        offsets  = info$file_start_position,
         BM       = G,
         ind_row  = ind_row - 1L,
         ind_col  = ind.col,
@@ -168,7 +201,7 @@ snp_readBGEN <- function(bgenfiles, backingfile, list_snp_id,
       )
 
       # Return variant info
-      infos %>%
+      info %>%
         dplyr::bind_cols(varinfo) %>%
         dplyr::select(chromosome, marker.ID = ID, rsid, physical.pos = position,
                       allele1, allele2, freq = FREQ, info = INFO)

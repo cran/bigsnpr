@@ -1,7 +1,6 @@
 advisor
 al
 Ani
-AppVeyor
 Armitage
 Aschard
 AVX
@@ -23,6 +22,7 @@ Biometrics
 bioRxiv
 BioRxiv
 Biostatistics
+Bjarni Jóhann Vilhjálmsson
 Blum
 bp
 bty
@@ -54,8 +54,10 @@ gc
 ggplot
 GigaScience
 github
+GRM
 GWAS
 gzipped
+hapmap
 HapMap
 heritability
 Hinrichs
@@ -89,10 +91,13 @@ mio
 monomorphic
 monozygotic
 Mychaleckyj
+NaN
 nb
 Neale
 OADP
 OGK
+OMNI
+OpenBLAS
 OpenMP
 parallelization
 parallelize
@@ -113,6 +118,7 @@ Privé
 privefl
 PRS
 QCed
+QCing
 qctool
 Qiu
 RcppParallel
@@ -135,7 +141,7 @@ Shashaank
 snp
 SNP's
 svds
-Tcrossprod
+tcrossprod
 Tellier
 th
 tibble
@@ -143,6 +149,7 @@ tmp
 UCSC
 UKBB
 UKBiobank
+uncompress
 univLinReg
 univLogReg
 unscaling

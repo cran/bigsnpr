@@ -28,7 +28,11 @@ flip_strand <- function(allele) {
 #' @param remove_dups Whether to remove duplicates (same physical position)?
 #'   Default is `TRUE`.
 #' @param match.min.prop Minimum proportion of variants in the smallest data
-#'   to be matched, otherwise stops with an error. Default is `50%`.
+#'   to be matched, otherwise stops with an error. Default is `20%`.
+#' @param return_flip_and_rev Whether to return internal boolean variables
+#'   `"_FLIP_"` and `"_REV_"` (whether the alleles were flipped and/or reversed).
+#'   Default is `FALSE`. Values in column `$beta` are multiplied by -1 for
+#'   variants with alleles reversed.
 #'
 #' @return A single data frame with matched variants. Values in column `$beta`
 #'   are multiplied by -1 for variants with alleles reversed.
@@ -43,7 +47,8 @@ snp_match <- function(sumstats, info_snp,
                       strand_flip = TRUE,
                       join_by_pos = TRUE,
                       remove_dups = TRUE,
-                      match.min.prop = 0.5) {
+                      match.min.prop = 0.2,
+                      return_flip_and_rev = FALSE) {
 
   sumstats <- as.data.frame(sumstats)
   info_snp <- as.data.frame(info_snp)
@@ -115,7 +120,9 @@ snp_match <- function(sumstats, info_snp,
   if (nrow(matched) < min_match)
     stop2("Not enough variants have been matched.")
 
-  as.data.frame(matched[, c("_FLIP_", "_REV_") := NULL][order(chr, pos)])
+  if (!return_flip_and_rev) matched <- matched[, c("_FLIP_", "_REV_") := NULL]
+
+  as.data.frame(matched[order(chr, pos)])
 }
 
 ################################################################################
@@ -168,7 +175,7 @@ snp_modifyBuild <- function(info_snp, liftOver, from = "hg18", to = "hg19") {
   system(paste(liftOver, BED, chain, lifted, unmapped))
 
   # readLines(lifted, n = 5)
-  new_pos <- bigreadr::fread2(lifted)
+  new_pos <- bigreadr::fread2(lifted, nThread = 1)
 
   # readLines(unmapped, n = 6)
   bad <- grep("^#", readLines(unmapped), value = TRUE, invert = TRUE)
@@ -259,16 +266,23 @@ same_ref <- function(ref1, alt1, ref2, alt2) {
 #'
 #' @inheritParams bigsnpr-package
 #' @param dir Directory where to download and decompress files.
-#'   Default is `tempdir()`. Directly use files there if already present.
+#'   Default is `tempdir()`. Directly use *uncompressed* files there if already
+#'   present. You can use [R.utils::gunzip()] to uncompress local files.
 #' @param rsid If providing rsIDs, the matching is performed using those
 #'   (instead of positions) and variants not matched are interpolated using
 #'   spline interpolation of variants that have been matched.
+#' @param type Whether to use the genetic maps interpolated from "OMNI"
+#'   (the default), or from "hapmap".
 #'
 #' @return The new vector of genetic positions.
 #' @export
 #'
 snp_asGeneticPos <- function(infos.chr, infos.pos, dir = tempdir(), ncores = 1,
-                             rsid = NULL) {
+                             rsid = NULL, type = c("OMNI", "hapmap")) {
+
+  type <- match.arg(type)
+  path <- c(OMNI   = "interpolated_OMNI",
+            hapmap = "interpolated_from_hapmap")[type]
 
   assert_package("R.utils")
   assert_lengths(infos.chr, infos.pos)
@@ -277,16 +291,17 @@ snp_asGeneticPos <- function(infos.chr, infos.pos, dir = tempdir(), ncores = 1,
   snp_split(infos.chr, function(ind.chr, pos, dir, rsid) {
 
     chr <- attr(ind.chr, "chr")
-    basename <- paste0("chr", chr, ".OMNI.interpolated_genetic_map")
+    basename <- paste0("chr", chr, `if`(type == "OMNI", ".OMNI", ""),
+                       ".interpolated_genetic_map")
     mapfile <- file.path(dir, basename)
     if (!file.exists(mapfile)) {
       url <- paste0("https://github.com/joepickrell/1000-genomes-genetic-maps/",
-                    "raw/master/interpolated_OMNI/", basename, ".gz")
+                    "raw/master/", path, "/", basename, ".gz")
       gzfile <- paste0(mapfile, ".gz")
       utils::download.file(url, destfile = gzfile, quiet = TRUE)
       R.utils::gunzip(gzfile)
     }
-    map.chr <- bigreadr::fread2(mapfile, showProgress = FALSE)
+    map.chr <- bigreadr::fread2(mapfile, showProgress = FALSE, nThread = 1)
 
     if (is.null(rsid)) {
       ind <- bigutilsr::knn_parallel(as.matrix(map.chr$V2), as.matrix(pos[ind.chr]),
@@ -307,6 +322,65 @@ snp_asGeneticPos <- function(infos.chr, infos.pos, dir = tempdir(), ncores = 1,
     new_pos
 
   }, combine = "c", pos = infos.pos, dir = dir, rsid = rsid, ncores = ncores)
+}
+
+################################################################################
+
+#' Estimation of ancestry proportions
+#'
+#' Estimation of ancestry proportions. Make sure to match summary statistics
+#' using [snp_match()] (and to reverse frequencies correspondingly).
+#'
+#' @param freq Vector of frequencies from which to estimate ancestry proportions.
+#' @param info_freq_ref A data frame (or matrix) with the set of frequencies to
+#'   be used as reference (one population per column).
+#' @param projection Matrix of "loadings" for each variant/PC to be used to
+#'   project allele frequencies.
+#' @param correction Coefficients to correct for shrinkage when projecting.
+#'
+#' @return vector of coefficients representing the ancestry proportions.
+#' @export
+#'
+#' @importFrom stats cor
+#'
+#' @example examples/example-ancestry-summary.R
+#'
+snp_ancestry_summary <- function(freq, info_freq_ref, projection, correction) {
+
+  assert_package("quadprog")
+  assert_nona(freq)
+  assert_nona
+  assert_nona(projection)
+  assert_lengths(freq, rows_along(info_freq_ref), rows_along(projection))
+  assert_lengths(correction, cols_along(projection))
+
+  X0 <- as.matrix(info_freq_ref)
+  if (mean(cor(X0, freq)) < -0.2)
+    stop2("Frequencies seem all reversed; switch reference allele?")
+
+  # project allele frequencies onto the PCA space
+  projection <- as.matrix(projection)
+  X <- crossprod(projection, X0)
+  y <- crossprod(projection, freq) * correction
+
+  cp_X_pd <- Matrix::nearPD(crossprod(X), base.matrix = TRUE)
+  if (!isTRUE(cp_X_pd$converged))
+    stop2("Could not find nearest positive definite matrix.")
+
+  # solve QP problem using https://stats.stackexchange.com/a/21566/135793
+  res <- quadprog::solve.QP(
+    Dmat = cp_X_pd$mat,
+    dvec = crossprod(y, X),
+    Amat = cbind(1, diag(ncol(X))),
+    bvec = c(1, rep(0, ncol(X))),
+    meq  = 1
+  )
+
+  cor_pred <- drop(cor(drop(X0 %*% res$solution), freq))
+  if (cor_pred < 0.99)
+    warning2("The solution does not perfectly match the frequencies.")
+
+  setNames(round(res$solution, 7), colnames(info_freq_ref))
 }
 
 ################################################################################

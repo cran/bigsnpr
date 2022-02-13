@@ -1,3 +1,87 @@
+## bigsnpr 1.9.8
+
+- Fix an issue in `snp_readBGI()` when using an outdated version of package {bit64}.
+
+## bigsnpr 1.9.7
+
+- `snp_cor()` and `bed_cor()` now use less memory.
+
+## bigsnpr 1.9.5
+
+- Remove parameter `info` from `snp_cor()` and `bed_cor()` because this correction is not useful after all.
+
+- `snp_cor()` and `bed_cor()` now return NaNs when e.g. the standard deviation is 0 (and warn about it). Before, these values were not reported (i.e. treated as 0).
+
+## bigsnpr 1.9.4
+
+- You can now return information on all variants with `snp_readBGI()`.
+
+## bigsnpr 1.9.3
+
+- Fix `snp_manhattan()` when non-ordered (chr, pos) are provided.
+
+## bigsnpr 1.9.2
+
+- Enhance function `snp_ancestry_summary()` by allowing to estimate ancestry proportions after PCA projection (instead of directly using the allele frequencies).
+
+## bigsnpr 1.9.1
+
+- Add function `bed_cor()` (similar to `snp_cor()` but with bed files/objects directly).
+
+- Add functions `snp_ld_scores()` and `bed_ld_scores()`.
+
+## bigsnpr 1.9.0
+
+- Add function `snp_ancestry_summary()` to estimate ancestry proportions from a cohort using only its summary allele frequencies.
+
+## bigsnpr 1.8.11
+
+- Add function `snp_scaleAlpha()`, which is similar to `snp_scaleBinom()`, but has a parameter `alpha` that controls the relation between the scaling and the allele frequencies.
+
+## bigsnpr 1.8.10
+
+- Function `snp_cor()` now also uses the upper triangle (`@uplo = "U"`) when the sparse correlation matrix is diagonal, so that it is easier to use with e.g. `as_SFBM()`.
+
+## bigsnpr 1.8.9
+
+- Add parameter `type` in `snp_asGeneticPos()` to also be able to use interpolated genetic maps from [here](https://github.com/joepickrell/1000-genomes-genetic-maps/tree/master/interpolated_from_hapmap).
+
+## bigsnpr 1.8.8
+
+- Add parameter `return_flip_and_rev` to `snp_match()` for whether to return internal boolean variables `"_FLIP_"` and `"_REV_"`.
+
+## bigsnpr 1.8.7
+
+- Add `$perc_kept` in the output of `snp_ldsplit()`, the percentage of initial non-zero values kept within the blocks defined.
+
+## bigsnpr 1.8.6
+
+- Faster `snp_prodBGEN()`.
+
+## bigsnpr 1.8.5
+
+- Add function `snp_prodBGEN()` to compute a matrix product between BGEN files and a matrix (or a vector). This removes the need to read an intermediate FBM object with `snp_readBGEN()` to compute the product. Moreover, when using dosages, they are not rounded to two decimal places anymore.
+
+## bigsnpr 1.8.4
+
+- Trade new parameter `num_iter_change` for a simpler `allow_jump_sign`.
+
+- Change defaults in LDpred2-auto to use 500 burn-in iterations (was 1000 before) followed by 200 iterations (500 before). Such a large number of iterations is usually not really needed.
+
+## bigsparser 0.5
+
+- New compact format for SFBMs which should be really useful for LDpred2 (should require about half of memory and be twice as fast). The only thing that you need to change is `as_SFBM(corr0, compact = TRUE)`. Make sure to reinstall {bigsnpr} after updating to {bigsparser} v0.5. 
+
+## bigsnpr 1.8.2
+
+- Prepare for incoming paper on (among other things) improved robustness of LDpred2-auto:
+
+    - add parameter `shrink_corr` to shrink off-diagonal elements of the LD matrix,
+    
+    - add parameter `num_iter_change` to control when starting to shrink the variants that change sign too much,
+    
+    - also return `corr_est`, the "imputed" correlations between variants and phenotypes, which can be used for post-QCing variants by comparing those to `beta / sqrt(n_eff * beta_se^2 + beta^2)`.
+
 ## bigsnpr 1.8.0
 
 - Replace parameter `s` by `delta` in `snp_lassosum2()`. This new parameter `delta` better reflects that the lassosum model also uses L2-regularization (therefore, elastic-net regularization).

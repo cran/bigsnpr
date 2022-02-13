@@ -53,8 +53,8 @@ replaceSNP <- function(BM, BM2, rowInd, colInd) {
     invisible(.Call(`_bigsnpr_replaceSNP`, BM, BM2, rowInd, colInd))
 }
 
-corMat <- function(BM, rowInd, colInd, size, thr, pos, info, ncores) {
-    .Call(`_bigsnpr_corMat`, BM, rowInd, colInd, size, thr, pos, info, ncores)
+corMat <- function(obj, rowInd, colInd, size, thr, pos, fill_diag, ncores) {
+    .Call(`_bigsnpr_corMat`, obj, rowInd, colInd, size, thr, pos, fill_diag, ncores)
 }
 
 impute <- function(BM, method, ncores) {
@@ -65,8 +65,12 @@ lassosum2 <- function(corr, beta_hat, lambda, delta, dfmax, maxiter, tol) {
     .Call(`_bigsnpr_lassosum2`, corr, beta_hat, lambda, delta, dfmax, maxiter, tol)
 }
 
-ldpred2_gibbs_auto <- function(corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, report_step, verbose = FALSE) {
-    .Call(`_bigsnpr_ldpred2_gibbs_auto`, corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, report_step, verbose)
+ld_scores <- function(obj, rowInd, colInd, size, pos, ncores) {
+    .Call(`_bigsnpr_ld_scores`, obj, rowInd, colInd, size, pos, ncores)
+}
+
+ldpred2_gibbs_auto <- function(corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, report_step, allow_jump_sign, shrink_corr, verbose = FALSE) {
+    .Call(`_bigsnpr_ldpred2_gibbs_auto`, corr, beta_hat, beta_init, order, n_vec, p_init, h2_init, burn_in, num_iter, report_step, allow_jump_sign, shrink_corr, verbose)
 }
 
 ldpred2_gibbs_one_sampling <- function(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter) {
@@ -79,6 +83,14 @@ ldpred2_gibbs <- function(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse
 
 multLinReg <- function(obj, ind_row, ind_col, U, ncores = 1L) {
     .Call(`_bigsnpr_multLinReg`, obj, ind_row, ind_col, U, ncores)
+}
+
+extract_submat_bgen <- function(filename, offsets, X, ind_row, decode, dosage, N, ncores) {
+    .Call(`_bigsnpr_extract_submat_bgen`, filename, offsets, X, ind_row, decode, dosage, N, ncores)
+}
+
+prod_bgen2 <- function(filename, offsets, XY, Y, ind_row, decode, dosage, N, max_size, ncores) {
+    .Call(`_bigsnpr_prod_bgen2`, filename, offsets, XY, Y, ind_row, decode, dosage, N, max_size, ncores)
 }
 
 read_bgen <- function(filename, offsets, BM, ind_row, ind_col, decode, dosage, N, ncores) {
@@ -103,6 +115,10 @@ get_L <- function(p, i, x, thr_r2) {
 
 get_C <- function(L, min_size, max_size, K) {
     .Call(`_bigsnpr_get_C`, L, min_size, max_size, K)
+}
+
+get_perc <- function(p, i, block_num) {
+    .Call(`_bigsnpr_get_perc`, p, i, block_num)
 }
 
 writebina <- function(filename, BM, tab, rowInd, colInd) {

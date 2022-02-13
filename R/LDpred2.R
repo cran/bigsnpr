@@ -129,14 +129,29 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
 #'   running LDpred2-grid with the estimates of p and h2 from LDpred2-auto, and
 #'   sparsity enabled. Default is `FALSE`.
 #' @param verbose Whether to print "p // h2" estimates at each iteration.
+#'   Disabled when parallelism is used.
 #' @param report_step Step to report sampling betas (after burn-in and before
-#'   unscaling). Nothing is reported by default. If using `num_iter = 500` and
-#'   `report_step = 50`, then 10 vectors of betas are reported.
+#'   unscaling). Nothing is reported by default. If using `num_iter = 200` and
+#'   `report_step = 20`, then 10 vectors of betas are reported.
+#' @param allow_jump_sign Whether to allow for effects sizes to change sign in
+#'   consecutive iterations? Default is `TRUE` (normal sampling). You can use
+#'   `FALSE` to force effects to go through 0 first before changing sign. Setting
+#'   this parameter to `FALSE` could be useful to prevent instability (oscillation
+#'   and ultimately divergence) of the Gibbs sampler. This would also be useful
+#'   for accelerating convergence of chains with a large initial value for p.
+#' @param shrink_corr Shrinkage multiplicative coefficient to apply to off-diagonal
+#'   elements of the correlation matrix. Default is `1` (unchanged).
+#'   You can use e.g. `0.9`.
 #'
 #' @return `snp_ldpred2_auto`: A list (over `vec_p_init`) of lists with
-#'   - `$beta_est`: vector of effect sizes
+#'   - `$beta_est`: vector of effect sizes (on the allele scale)
 #'   - `$beta_est_sparse` (only when `sparse = TRUE`): sparse vector of effect sizes
-#'   - `$sample_beta`: Matrix of sampling betas (see parameter `report_step`)
+#'   - `$corr_est`, the "imputed" correlations between variants and phenotypes,
+#'     which can be used for post-QCing variants by comparing those to
+#'     `with(df_beta, beta / sqrt(n_eff * beta_se^2 + beta^2))`
+#'   - `$sample_beta`: Matrix of sampling betas (see parameter `report_step`),
+#'     *not* on the allele scale, for which you need to multiply by
+#'     `with(df_beta, sqrt(n_eff * beta_se^2 + beta^2))`
 #'   - `$postp_est`: vector of posterior probabilities of being causal
 #'   - `$p_est`: estimate of p, the proportion of causal variants
 #'   - `$h2_est`: estimate of the (SNP) heritability (also see [coef_to_liab])
@@ -144,7 +159,7 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
 #'     useful to check convergence of the iterative algorithm
 #'   - `$path_h2_est`: full path of h2 estimates (including burn-in);
 #'     useful to check convergence of the iterative algorithm
-#'   - `$h2_init` and `$p_init`
+#'   - `$h2_init` and `$p_init`, input parameters for convenience
 #'
 #' @import foreach
 #'
@@ -154,11 +169,13 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
 #'
 snp_ldpred2_auto <- function(corr, df_beta, h2_init,
                              vec_p_init = 0.1,
-                             burn_in = 1000,
-                             num_iter = 500,
+                             burn_in = 500,
+                             num_iter = 200,
                              sparse = FALSE,
                              verbose = FALSE,
                              report_step = num_iter + 1L,
+                             allow_jump_sign = TRUE,
+                             shrink_corr = 1,
                              ncores = 1) {
 
   assert_df_with_names(df_beta, c("beta", "beta_se", "n_eff"))
@@ -185,11 +202,14 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
       h2_init   = h2_init,
       burn_in   = burn_in,
       num_iter  = num_iter,
-      verbose   = verbose,
-      report_step = report_step
+      verbose   = verbose && (ncores == 1),
+      report_step = report_step,
+      allow_jump_sign = allow_jump_sign,
+      shrink_corr = shrink_corr
     )
     ldpred_auto$beta_est  <- drop(ldpred_auto$beta_est) * scale
     ldpred_auto$postp_est <- drop(ldpred_auto$postp_est)
+    ldpred_auto$corr_est  <- drop(ldpred_auto$corr_est)
     ldpred_auto$h2_init <- h2_init
     ldpred_auto$p_init  <- p_init
 

@@ -2,6 +2,7 @@
 % Please edit documentation in R/corr.R
 \name{snp_cor}
 \alias{snp_cor}
+\alias{bed_cor}
 \title{Correlation matrix}
 \usage{
 snp_cor(
@@ -13,7 +14,18 @@ snp_cor(
   thr_r2 = 0,
   fill.diag = TRUE,
   infos.pos = NULL,
-  info = rep(1, length(ind.col)),
+  ncores = 1
+)
+
+bed_cor(
+  obj.bed,
+  ind.row = rows_along(obj.bed),
+  ind.col = cols_along(obj.bed),
+  size = 500,
+  alpha = 1,
+  thr_r2 = 0,
+  fill.diag = TRUE,
+  infos.pos = NULL,
   ncores = 1
 )
 }
@@ -46,11 +58,11 @@ or to keep it as 0s.}
 on a chromosome (in base pairs) of each SNP.\cr
 Typically \verb{<bigSNP>$map$physical.pos}.}
 
-\item{info}{Vector of imputation INFO scores to correct correlations when
-they are computed from imputed dosage data.}
-
 \item{ncores}{Number of cores used. Default doesn't use parallelism.
 You may use \link{nb_cores}.}
+
+\item{obj.bed}{Object of type \link{bed}, which is the mapping of some bed file.
+Use \code{obj.bed <- bed(bedfile)} to get this object.}
 }
 \value{
 The (Pearson) correlation matrix. This is a sparse symmetric matrix.
@@ -61,8 +73,9 @@ Get significant (Pearson) correlations between nearby SNPs of the same chromosom
 }
 \examples{
 test <- snp_attachExtdata()
+G <- test$genotypes
 
-corr <- snp_cor(test$genotypes, ind.col = 1:1000)
+corr <- snp_cor(G, ind.col = 1:1000)
 corr[1:10, 1:10]
 
 # Sparsity
