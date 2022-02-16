@@ -1,4 +1,4 @@
-e262e28e6cc18c2fd3f7e86096a06b43 *DESCRIPTION
+9197390b492af7c5f6811511829a1f35 *DESCRIPTION
 dc7e6a0217e68e6c8c40988f395d6d3a *NAMESPACE
 f1796ea2067a781dce4ed510e9460820 *NEWS.md
 9ac689d4f5d03173017e5fac49705640 *R/Fst.R
@@ -39,7 +39,7 @@ b2399d411aeb935d530b82b4bc106e96 *R/utils-assert.R
 f6abe6e4fff5167638089837bce8f886 *R/utils.R
 0b8c44a5615d10511094370247255d03 *R/write-plink.R
 44c4287cfc1ea4d02c09b83217756157 *README.md
-20184570d9e4b904903c214587cf6939 *build/partial.rdb
+63bdd1c937b9e2de21e61473b415f038 *build/partial.rdb
 b6a17477d45da8d606bd64c09c0b2932 *data/LD.wiki34.rda
 5f766059703af6e6a9cdf11b73174638 *inst/CITATION
 aac80ddc6ae9292d015f78dc7f33cb1a *inst/WORDLIST
@@ -140,8 +140,8 @@ ee41c2af99ca61e290a6645d98ce4d9d *src/ld-scores.cpp
 aeea97793d99dbe5fc5351374a20e72c *src/ldpred2-sampling.cpp
 6b8780bc5afb2c936785ce16ce7b2489 *src/ldpred2.cpp
 f8c206807a53120b939ecf0688b52c5d *src/multLinReg.cpp
-188e88af8795b4e11216d1e1bfd43ca7 *src/prod-bgen.cpp
-28251d6fb91233f59712564e0a3eea87 *src/read-bgen.cpp
+63765f350b5f8171256db3c48f498761 *src/prod-bgen.cpp
+a868edd9043a008a80cf237b12d3f1ce *src/read-bgen.cpp
 5eac9383dce00b4a368ca78c57b8fcc7 *src/read-plink.cpp
 89af7b82f454ab8dfb9a21c1581002bb *src/sp-colsumssq-sym.cpp
 8d5182fef304e8de2a23c49fd3784d0e *src/split-LD.cpp
@@ -174,7 +174,7 @@ d556ecc88e2dd174f9a59c670e839908 *tests/testthat/test-5-parallel.R
 69aed85aeb6fd8cd194fd1e03e45d35e *tests/testthat/test-6-PRS.R
 9ed5037524237c46b12b3dc9e6101d9c *tests/testthat/test-6-SCT.R
 b9fe31bba05330360dcf452a767b7511 *tests/testthat/test-7-OpenMP.R
-17db5ae55ae82336017440c81f0cd0bb *tests/testthat/test-8-LDpred2.R
+13677930b8d2d6b7c64132d4b6ca551a *tests/testthat/test-8-LDpred2.R
 5c5e22cf28424b24a6a8bf85fe945f29 *tests/testthat/test-8-simu-pheno.R
 7af1ba0d60d39e2732f20923412f6222 *tests/testthat/test-9-Fst.R
 a500b2e76bd8525ec8195998f559b866 *tests/testthat/test-9-LDSC.R
