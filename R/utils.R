@@ -12,7 +12,7 @@ utils::globalVariables(c("ic", "f", "lp", "LD.wiki34", "OS", "arch", "avx2",
                          "chromosome", "position", "allele1", "allele2",
                          "marker.ID", "rsid", "chr", "pos", "p_init",
                          "df_af", ".", "FREQ", "ID", "INFO", "ind_rm",
-                         "file_start_position"))
+                         "file_start_position", "h2", "p", "sparse"))
 
 ################################################################################
 
@@ -54,7 +54,7 @@ NAMES.FAM <- c("family.ID", "sample.ID", "paternal.ID",
 ################################################################################
 
 write.table2 <- function(x, file, ...) {
-  data.table::fwrite(x, file, sep = "\t", quote = FALSE,
+  data.table::fwrite(x, file, sep = "\t", quote = FALSE, scipen = 50,
                      row.names = FALSE, col.names = FALSE, ...)
 }
 

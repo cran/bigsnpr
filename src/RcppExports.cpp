@@ -250,19 +250,19 @@ BEGIN_RCPP
 END_RCPP
 }
 // lassosum2
-List lassosum2(Environment corr, const arma::vec& beta_hat, double lambda, double delta, double dfmax, int maxiter, double tol);
-RcppExport SEXP _bigsnpr_lassosum2(SEXP corrSEXP, SEXP beta_hatSEXP, SEXP lambdaSEXP, SEXP deltaSEXP, SEXP dfmaxSEXP, SEXP maxiterSEXP, SEXP tolSEXP) {
+List lassosum2(Environment corr, const NumericVector& beta_hat, const NumericVector& lambda, const NumericVector& delta_plus_one, double dfmax, int maxiter, double tol);
+RcppExport SEXP _bigsnpr_lassosum2(SEXP corrSEXP, SEXP beta_hatSEXP, SEXP lambdaSEXP, SEXP delta_plus_oneSEXP, SEXP dfmaxSEXP, SEXP maxiterSEXP, SEXP tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Environment >::type corr(corrSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type beta_hat(beta_hatSEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    Rcpp::traits::input_parameter< double >::type delta(deltaSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type beta_hat(beta_hatSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type delta_plus_one(delta_plus_oneSEXP);
     Rcpp::traits::input_parameter< double >::type dfmax(dfmaxSEXP);
     Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
     Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(lassosum2(corr, beta_hat, lambda, delta, dfmax, maxiter, tol));
+    rcpp_result_gen = Rcpp::wrap(lassosum2(corr, beta_hat, lambda, delta_plus_one, dfmax, maxiter, tol));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -306,7 +306,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ldpred2_gibbs_one_sampling
-arma::mat ldpred2_gibbs_one_sampling(Environment corr, const NumericVector& beta_hat, const NumericVector& beta_init, const IntegerVector& order, const NumericVector& n_vec, double h2, double p, bool sparse, int burn_in, int num_iter);
+NumericMatrix ldpred2_gibbs_one_sampling(Environment corr, const NumericVector& beta_hat, const NumericVector& beta_init, const IntegerVector& order, const NumericVector& n_vec, double h2, double p, bool sparse, int burn_in, int num_iter);
 RcppExport SEXP _bigsnpr_ldpred2_gibbs_one_sampling(SEXP corrSEXP, SEXP beta_hatSEXP, SEXP beta_initSEXP, SEXP orderSEXP, SEXP n_vecSEXP, SEXP h2SEXP, SEXP pSEXP, SEXP sparseSEXP, SEXP burn_inSEXP, SEXP num_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -325,9 +325,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// ldpred2_gibbs
-arma::mat ldpred2_gibbs(Environment corr, const NumericVector& beta_hat, const NumericVector& beta_init, const IntegerVector& order, const NumericVector& n_vec, const NumericVector& h2, const NumericVector& p, const LogicalVector& sparse, int burn_in, int num_iter, int ncores);
-RcppExport SEXP _bigsnpr_ldpred2_gibbs(SEXP corrSEXP, SEXP beta_hatSEXP, SEXP beta_initSEXP, SEXP orderSEXP, SEXP n_vecSEXP, SEXP h2SEXP, SEXP pSEXP, SEXP sparseSEXP, SEXP burn_inSEXP, SEXP num_iterSEXP, SEXP ncoresSEXP) {
+// ldpred2_gibbs_one
+NumericVector ldpred2_gibbs_one(Environment corr, const NumericVector& beta_hat, const NumericVector& beta_init, const IntegerVector& order, const NumericVector& n_vec, double h2, double p, bool sparse, int burn_in, int num_iter);
+RcppExport SEXP _bigsnpr_ldpred2_gibbs_one(SEXP corrSEXP, SEXP beta_hatSEXP, SEXP beta_initSEXP, SEXP orderSEXP, SEXP n_vecSEXP, SEXP h2SEXP, SEXP pSEXP, SEXP sparseSEXP, SEXP burn_inSEXP, SEXP num_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -336,13 +336,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const NumericVector& >::type beta_init(beta_initSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type order(orderSEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type n_vec(n_vecSEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type h2(h2SEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type p(pSEXP);
-    Rcpp::traits::input_parameter< const LogicalVector& >::type sparse(sparseSEXP);
+    Rcpp::traits::input_parameter< double >::type h2(h2SEXP);
+    Rcpp::traits::input_parameter< double >::type p(pSEXP);
+    Rcpp::traits::input_parameter< bool >::type sparse(sparseSEXP);
     Rcpp::traits::input_parameter< int >::type burn_in(burn_inSEXP);
     Rcpp::traits::input_parameter< int >::type num_iter(num_iterSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(ldpred2_gibbs(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter, ncores));
+    rcpp_result_gen = Rcpp::wrap(ldpred2_gibbs_one(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -459,8 +458,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // get_L
-List get_L(std::vector<size_t> p, const IntegerVector& i, const NumericVector& x, double thr_r2);
-RcppExport SEXP _bigsnpr_get_L(SEXP pSEXP, SEXP iSEXP, SEXP xSEXP, SEXP thr_r2SEXP) {
+List get_L(std::vector<size_t> p, const IntegerVector& i, const NumericVector& x, double thr_r2, double max_r2);
+RcppExport SEXP _bigsnpr_get_L(SEXP pSEXP, SEXP iSEXP, SEXP xSEXP, SEXP thr_r2SEXP, SEXP max_r2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -468,34 +467,36 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const IntegerVector& >::type i(iSEXP);
     Rcpp::traits::input_parameter< const NumericVector& >::type x(xSEXP);
     Rcpp::traits::input_parameter< double >::type thr_r2(thr_r2SEXP);
-    rcpp_result_gen = Rcpp::wrap(get_L(p, i, x, thr_r2));
+    Rcpp::traits::input_parameter< double >::type max_r2(max_r2SEXP);
+    rcpp_result_gen = Rcpp::wrap(get_L(p, i, x, thr_r2, max_r2));
     return rcpp_result_gen;
 END_RCPP
 }
 // get_C
-List get_C(const arma::sp_mat& L, int min_size, int max_size, int K);
-RcppExport SEXP _bigsnpr_get_C(SEXP LSEXP, SEXP min_sizeSEXP, SEXP max_sizeSEXP, SEXP KSEXP) {
+List get_C(const arma::sp_mat& L, int min_size, int max_size, int max_K, double max_cost);
+RcppExport SEXP _bigsnpr_get_C(SEXP LSEXP, SEXP min_sizeSEXP, SEXP max_sizeSEXP, SEXP max_KSEXP, SEXP max_costSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::sp_mat& >::type L(LSEXP);
     Rcpp::traits::input_parameter< int >::type min_size(min_sizeSEXP);
     Rcpp::traits::input_parameter< int >::type max_size(max_sizeSEXP);
-    Rcpp::traits::input_parameter< int >::type K(KSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_C(L, min_size, max_size, K));
+    Rcpp::traits::input_parameter< int >::type max_K(max_KSEXP);
+    Rcpp::traits::input_parameter< double >::type max_cost(max_costSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_C(L, min_size, max_size, max_K, max_cost));
     return rcpp_result_gen;
 END_RCPP
 }
 // get_perc
-double get_perc(std::vector<size_t> p, const IntegerVector& i, const IntegerVector& block_num);
-RcppExport SEXP _bigsnpr_get_perc(SEXP pSEXP, SEXP iSEXP, SEXP block_numSEXP) {
+double get_perc(const NumericVector& p, const IntegerVector& i, const IntegerVector& all_last);
+RcppExport SEXP _bigsnpr_get_perc(SEXP pSEXP, SEXP iSEXP, SEXP all_lastSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::vector<size_t> >::type p(pSEXP);
+    Rcpp::traits::input_parameter< const NumericVector& >::type p(pSEXP);
     Rcpp::traits::input_parameter< const IntegerVector& >::type i(iSEXP);
-    Rcpp::traits::input_parameter< const IntegerVector& >::type block_num(block_numSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_perc(p, i, block_num));
+    Rcpp::traits::input_parameter< const IntegerVector& >::type all_last(all_lastSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_perc(p, i, all_last));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -545,7 +546,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_bigsnpr_ld_scores", (DL_FUNC) &_bigsnpr_ld_scores, 6},
     {"_bigsnpr_ldpred2_gibbs_auto", (DL_FUNC) &_bigsnpr_ldpred2_gibbs_auto, 13},
     {"_bigsnpr_ldpred2_gibbs_one_sampling", (DL_FUNC) &_bigsnpr_ldpred2_gibbs_one_sampling, 10},
-    {"_bigsnpr_ldpred2_gibbs", (DL_FUNC) &_bigsnpr_ldpred2_gibbs, 11},
+    {"_bigsnpr_ldpred2_gibbs_one", (DL_FUNC) &_bigsnpr_ldpred2_gibbs_one, 10},
     {"_bigsnpr_multLinReg", (DL_FUNC) &_bigsnpr_multLinReg, 5},
     {"_bigsnpr_extract_submat_bgen", (DL_FUNC) &_bigsnpr_extract_submat_bgen, 8},
     {"_bigsnpr_prod_bgen2", (DL_FUNC) &_bigsnpr_prod_bgen2, 10},
@@ -553,8 +554,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_bigsnpr_readbina", (DL_FUNC) &_bigsnpr_readbina, 3},
     {"_bigsnpr_readbina2", (DL_FUNC) &_bigsnpr_readbina2, 5},
     {"_bigsnpr_sp_colSumsSq_sym", (DL_FUNC) &_bigsnpr_sp_colSumsSq_sym, 3},
-    {"_bigsnpr_get_L", (DL_FUNC) &_bigsnpr_get_L, 4},
-    {"_bigsnpr_get_C", (DL_FUNC) &_bigsnpr_get_C, 4},
+    {"_bigsnpr_get_L", (DL_FUNC) &_bigsnpr_get_L, 5},
+    {"_bigsnpr_get_C", (DL_FUNC) &_bigsnpr_get_C, 5},
     {"_bigsnpr_get_perc", (DL_FUNC) &_bigsnpr_get_perc, 3},
     {"_bigsnpr_writebina", (DL_FUNC) &_bigsnpr_writebina, 5},
     {"_bigsnpr_testWrite", (DL_FUNC) &_bigsnpr_testWrite, 2},

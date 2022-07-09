@@ -1,3 +1,49 @@
+## bigsnpr 1.10.7
+
+- Fix a liftOver error in `snp_modifyBuild()`.
+
+## bigsnpr 1.10.6
+
+Better `snp_ldsplit()`:
+- also return `$cost2`, the sum of squared sizes of the blocks,
+- for equivalent splits (with the same cost), now return the one that also minimizes cost2,
+- now return unique splits only (e.g. could get equivalent splits with different `max_size`).
+
+## bigsnpr 1.10.5
+
+- Slightly change the default parameters of lassosum2: 
+    - `delta` from `c(0.001, 0.005, 0.02, 0.1, 0.6, 3)` to `c(0.001, 0.01, 0.1, 1)`,
+    - `nlambda` from 20 to 30,
+    - `maxiter` from 500 to 1000.
+    
+- Add a penalty multiplicative factor for delta and lambda to regularize variants with smaller GWAS sample sizes more (when they are different, as in meta-analyses with different sets of variants).
+
+## bigsnpr 1.10.4
+
+- Now use the same updating strategy for residuals in LDpred2 as in lassosum2. This can make LDpred2-grid and LDpred2-auto an order of magnitude faster, especially for small p.
+
+## bigsnpr 1.10.2
+
+- Better `snp_modifyBuild()`: more variants should be mapped + add some QC on the mapping (a position is not mapped to more than one, the chromosome is the same, and possibly check whether we can go back to the initial position -> cf. https://doi.org/10.1093/nargab/lqaa054).
+
+## bigsnpr 1.10.1
+
+- Add two new parameters to `snp_ldsplit()`: `max_r2`, the maximum squared correlation allowed outside blocks, and `max_cost`, the maximum cost of reported solutions (i.e. the sum of all squared correlations outside blocks). Using `max_r2` offers an extra guarantee that the splitting is very good, and makes the function much faster by discarding lots of possible splits. 
+
+## bigsnpr 1.10.0
+
+- LDpred2-grid does not use OpenMP for parallelism anymore, it now simply uses multiple R processes. 
+
+- LDpred2-grid and LDpred2-auto can now make use of `set.seed()` to get reproducible results. Note that LDpred2-inf and lassosum2 do not use any sampling.
+
+## bigsnpr 1.9.13
+
+- Enforce `scipen = 50` when writing files to turn off scientific format (e.g. for physical positions stored as `double`).
+
+## bigsparser 0.6
+
+- Use a better strategy for appending to an SFBM (`$add_columns()`).
+
 ## bigsnpr 1.9.8
 
 - Fix an issue in `snp_readBGI()` when using an outdated version of package {bit64}.

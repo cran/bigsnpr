@@ -1,83 +1,21 @@
 /******************************************************************************/
 
-#include <bigstatsr/arma-strict-R-headers.h>
-#include <bigstatsr/utils.h>
 #include <bigsparser/SFBM.h>
-
-/******************************************************************************/
-
-inline double square(double x) {
-  return x * x;
-}
-
-/******************************************************************************/
-
-arma::vec ldpred2_gibbs_one(XPtr<SFBM> sfbm,
-                            const arma::vec& beta_hat,
-                            const NumericVector& beta_init,
-                            const IntegerVector& order,
-                            const NumericVector& n_vec,
-                            double h2,
-                            double p,
-                            bool sparse,
-                            int burn_in,
-                            int num_iter) {
-
-  int m = beta_hat.size();
-  arma::vec curr_beta(beta_init.begin(), m);
-  arma::vec avg_beta(m, arma::fill::zeros);
-
-  double h2_per_var = h2 / (m * p);
-  double inv_odd_p = (1 - p) / p;
-  double gap0 = arma::dot(beta_hat, beta_hat);
-
-  for (int k = -burn_in; k < num_iter; k++) {
-
-    double gap = 0;
-
-    for (const int& j : order) {
-
-      double dotprod = sfbm->dot_col(j, curr_beta);
-      double resid = beta_hat[j] - dotprod;
-      gap += resid * resid;
-      double res_beta_hat_j = curr_beta[j] + resid;
-
-      double C1 = h2_per_var * n_vec[j];
-      double C2 = 1 / (1 + 1 / C1);
-      double C3 = C2 * res_beta_hat_j;
-      double C4 = ::sqrt(C2 / n_vec[j]);
-
-      double post_p_j = 1 /
-        (1 + inv_odd_p * ::sqrt(1 + C1) * ::exp(-square(C3 / C4) / 2));
-
-      if (sparse && (post_p_j < p)) {
-        curr_beta[j] = 0;
-      } else {
-        curr_beta[j] = (post_p_j > ::unif_rand()) ? ::Rf_rnorm(C3, C4) : 0;
-        if (k >= 0) avg_beta[j] += C3 * post_p_j;
-      }
-    }
-
-    if (gap > gap0) { avg_beta.fill(NA_REAL); return avg_beta; }
-  }
-
-  return avg_beta / num_iter;
-}
+#include <bigstatsr/utils.h>
 
 /******************************************************************************/
 
 // [[Rcpp::export]]
-arma::mat ldpred2_gibbs(Environment corr,
-                        const NumericVector& beta_hat,
-                        const NumericVector& beta_init,
-                        const IntegerVector& order,
-                        const NumericVector& n_vec,
-                        const NumericVector& h2,
-                        const NumericVector& p,
-                        const LogicalVector& sparse,
-                        int burn_in,
-                        int num_iter,
-                        int ncores) {
+NumericVector ldpred2_gibbs_one(Environment corr,
+                                const NumericVector& beta_hat,
+                                const NumericVector& beta_init,
+                                const IntegerVector& order,
+                                const NumericVector& n_vec,
+                                double h2,
+                                double p,
+                                bool sparse,
+                                int burn_in,
+                                int num_iter) {
 
   XPtr<SFBM> sfbm = corr["address"];
 
@@ -88,27 +26,49 @@ arma::mat ldpred2_gibbs(Environment corr,
   myassert_size(beta_init.size(), m);
   myassert_size(n_vec.size(), m);
 
-  int K = p.size();
-  myassert_size(h2.size(),     K);
-  myassert_size(sparse.size(), K);
+  NumericVector curr_beta = Rcpp::clone(beta_init);
+  NumericVector dotprods  = sfbm->prod(curr_beta);
+  NumericVector avg_beta(m);
 
-  arma::mat res(m, K);
+  double h2_per_var = h2 / (m * p);
+  double inv_odd_p = (1 - p) / p;
+  double gap0 =
+    std::inner_product(beta_hat.begin(), beta_hat.end(), beta_hat.begin(), 0.0);
 
-  #pragma omp parallel for schedule(dynamic, 1) num_threads(ncores)
-  for (int k = 0; k < K; k++) {
+  for (int k = -burn_in; k < num_iter; k++) {
 
-    // if (k % ncores == 0)
-    //   Rcout << "Starting with params " << k + 1 << " / " << K << std::endl;
+    double gap = 0;
 
-    arma::vec res_k = ldpred2_gibbs_one(
-      sfbm, beta_hat, beta_init, order, n_vec,
-      h2[k], p[k], sparse[k], burn_in, num_iter);
+    for (const int& j : order) {
 
-    #pragma omp critical
-    res.col(k) = res_k;
+      // double dotprod = sfbm->dot_col(j, curr_beta);
+      double resid = beta_hat[j] - dotprods[j];
+      gap += resid * resid;
+      double res_beta_hat_j = curr_beta[j] + resid;
+
+      double C1 = h2_per_var * n_vec[j];
+      double C2 = 1 / (1 + 1 / C1);
+      double C3 = C2 * res_beta_hat_j;
+      double C4 = C2 / n_vec[j];
+
+      double post_p_j = 1 /
+        (1 + inv_odd_p * ::sqrt(1 + C1) * ::exp(-C3 * C3 / C4 / 2));
+
+      double diff = -curr_beta[j];
+      if (sparse && (post_p_j < p)) {
+        curr_beta[j] = 0;
+      } else {
+        curr_beta[j] = (post_p_j > ::unif_rand()) ? ::Rf_rnorm(C3, ::sqrt(C4)) : 0;
+        if (k >= 0) avg_beta[j] += C3 * post_p_j;
+      }
+      diff += curr_beta[j];
+      if (diff != 0) dotprods = sfbm->incr_mult_col(j, dotprods, diff);
+    }
+
+    if (gap > gap0) { avg_beta.fill(NA_REAL); return avg_beta; }
   }
 
-  return res;
+  return avg_beta / num_iter;
 }
 
 /******************************************************************************/

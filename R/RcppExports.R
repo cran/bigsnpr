@@ -61,8 +61,8 @@ impute <- function(BM, method, ncores) {
     invisible(.Call(`_bigsnpr_impute`, BM, method, ncores))
 }
 
-lassosum2 <- function(corr, beta_hat, lambda, delta, dfmax, maxiter, tol) {
-    .Call(`_bigsnpr_lassosum2`, corr, beta_hat, lambda, delta, dfmax, maxiter, tol)
+lassosum2 <- function(corr, beta_hat, lambda, delta_plus_one, dfmax, maxiter, tol) {
+    .Call(`_bigsnpr_lassosum2`, corr, beta_hat, lambda, delta_plus_one, dfmax, maxiter, tol)
 }
 
 ld_scores <- function(obj, rowInd, colInd, size, pos, ncores) {
@@ -77,8 +77,8 @@ ldpred2_gibbs_one_sampling <- function(corr, beta_hat, beta_init, order, n_vec, 
     .Call(`_bigsnpr_ldpred2_gibbs_one_sampling`, corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter)
 }
 
-ldpred2_gibbs <- function(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter, ncores) {
-    .Call(`_bigsnpr_ldpred2_gibbs`, corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter, ncores)
+ldpred2_gibbs_one <- function(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter) {
+    .Call(`_bigsnpr_ldpred2_gibbs_one`, corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter)
 }
 
 multLinReg <- function(obj, ind_row, ind_col, U, ncores = 1L) {
@@ -109,16 +109,16 @@ sp_colSumsSq_sym <- function(p, i, x) {
     .Call(`_bigsnpr_sp_colSumsSq_sym`, p, i, x)
 }
 
-get_L <- function(p, i, x, thr_r2) {
-    .Call(`_bigsnpr_get_L`, p, i, x, thr_r2)
+get_L <- function(p, i, x, thr_r2, max_r2) {
+    .Call(`_bigsnpr_get_L`, p, i, x, thr_r2, max_r2)
 }
 
-get_C <- function(L, min_size, max_size, K) {
-    .Call(`_bigsnpr_get_C`, L, min_size, max_size, K)
+get_C <- function(L, min_size, max_size, max_K, max_cost) {
+    .Call(`_bigsnpr_get_C`, L, min_size, max_size, max_K, max_cost)
 }
 
-get_perc <- function(p, i, block_num) {
-    .Call(`_bigsnpr_get_perc`, p, i, block_num)
+get_perc <- function(p, i, all_last) {
+    .Call(`_bigsnpr_get_perc`, p, i, all_last)
 }
 
 writebina <- function(filename, BM, tab, rowInd, colInd) {

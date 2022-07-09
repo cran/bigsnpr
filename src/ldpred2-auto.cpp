@@ -1,16 +1,17 @@
 /******************************************************************************/
 
-#include <bigstatsr/arma-strict-R-headers.h>
-#include <bigstatsr/utils.h>
 #include <bigsparser/SFBM.h>
+#include <bigstatsr/utils.h>
 
 /******************************************************************************/
 
 const double MIN_P  = 1e-5;
 const double MIN_H2 = 1e-4;
 
-inline double square(double x) {
-  return x * x;
+/******************************************************************************/
+
+double dotprod2(const NumericVector& X, const NumericVector& Y) {
+  return std::inner_product(X.begin(), X.end(), Y.begin(), 0.0);
 }
 
 /******************************************************************************/
@@ -39,18 +40,20 @@ List ldpred2_gibbs_auto(Environment corr,
   myassert_size(beta_init.size(), m);
   myassert_size(n_vec.size(), m);
 
-  arma::vec curr_beta(beta_init.begin(), m);
-  arma::vec avg_beta(m, arma::fill::zeros), avg_postp(m, arma::fill::zeros);
-  arma::vec avg_beta_hat(m, arma::fill::zeros);
+  NumericVector curr_beta = Rcpp::clone(beta_init);
+  NumericVector dotprods  = sfbm->prod(curr_beta);
+  NumericVector avg_beta(m), avg_postp(m), avg_beta_hat(m);
 
-  arma::mat sample_beta(m, num_iter / report_step, arma::fill::zeros);
+  NumericMatrix sample_beta(m, num_iter / report_step);
   int ind_report = 0, next_k_reported = burn_in - 1 + report_step;
 
   int num_iter_tot = burn_in + num_iter;
-  std::vector<double> p_est(num_iter_tot), h2_est(num_iter_tot);
+  NumericVector p_est(num_iter_tot), h2_est(num_iter_tot);
 
-  double cur_h2_est = arma::dot(curr_beta, sfbm->prod(curr_beta));
+  double cur_h2_est = shrink_corr * dotprod2(curr_beta, dotprods) +
+    (1 - shrink_corr) * dotprod2(curr_beta, curr_beta);
   double p = p_init, h2 = h2_init, avg_p = 0, avg_h2 = 0;
+  bool no_jump_sign = !allow_jump_sign;
 
   for (int k = 0; k < num_iter_tot; k++) {
 
@@ -60,16 +63,16 @@ List ldpred2_gibbs_auto(Environment corr,
 
     for (const int& j : order) {
 
-      double dotprod = sfbm->dot_col(j, curr_beta);
+      double dotprod = dotprods[j];  // sfbm->dot_col(j, curr_beta);
       double res_beta_hat_j = beta_hat[j] + shrink_corr * (curr_beta[j] - dotprod);
 
       double C1 = h2_per_var * n_vec[j];
       double C2 = 1 / (1 + 1 / C1);
       double C3 = C2 * res_beta_hat_j;
-      double C4 = ::sqrt(C2 / n_vec[j]);
+      double C4 = C2 / n_vec[j];
 
       double postp = 1 /
-        (1 + inv_odd_p * ::sqrt(1 + C1) * ::exp(-square(C3 / C4) / 2));
+        (1 + inv_odd_p * ::sqrt(1 + C1) * ::exp(-C3 * C3 / C4 / 2));
 
       double prev_beta = curr_beta[j];
       double dotprod_shrunk = shrink_corr * dotprod + (1 - shrink_corr) * prev_beta;
@@ -83,11 +86,11 @@ List ldpred2_gibbs_auto(Environment corr,
       double diff = -prev_beta;
       if (postp > ::unif_rand()) {
 
-        double samp_beta = ::Rf_rnorm(C3, C4);
+        double samp_beta = ::Rf_rnorm(C3, ::sqrt(C4));
 
-        if (!allow_jump_sign && (samp_beta * prev_beta) < 0) {
+        if (no_jump_sign && (samp_beta * prev_beta) < 0) {
           curr_beta[j] = 0;
-          if (k >= burn_in) {
+          if (k >= burn_in) {  // not sure if I should undo this
             avg_postp[j] -= postp;
             avg_beta[j]  -= C3 * postp;
           }
@@ -101,7 +104,10 @@ List ldpred2_gibbs_auto(Environment corr,
         curr_beta[j] = 0;
       }
 
-      cur_h2_est += diff * (2 * dotprod_shrunk + diff);
+      if (diff != 0) {
+        cur_h2_est += diff * (2 * dotprod_shrunk + diff);
+        dotprods = sfbm->incr_mult_col(j, dotprods, diff);
+      }
     }
 
     p = std::max(::Rf_rbeta(1 + nb_causal, 1 + m - nb_causal), MIN_P);
@@ -112,7 +118,7 @@ List ldpred2_gibbs_auto(Environment corr,
       avg_p  += p;
       avg_h2 += h2;
       if (k == next_k_reported) {
-        sample_beta.col(ind_report++) = curr_beta;
+        sample_beta(_, ind_report++) = curr_beta;
         next_k_reported += report_step;
       }
     }
@@ -132,7 +138,9 @@ List ldpred2_gibbs_auto(Environment corr,
     _["p_est"]       = est_p,
     _["h2_est"]      = est_h2,
     _["path_p_est"]  = p_est,
-    _["path_h2_est"] = h2_est);
+    _["path_h2_est"] = h2_est,
+    _["h2_init"]     = h2_init,
+    _["p_init"]      = p_init);
 }
 
 /******************************************************************************/
