@@ -1,13 +1,29 @@
+## bigsnpr 1.11.4
+
+- Extend and improve LDpred2-auto to allow for estimating $h^2$, $p$, and $\alpha$, a new third parameter that controls how expected effect sizes relate to minor allele frequencies.
+
+## bigsnpr 1.11.3
+
+- Can now run `snp_ldsc2()` with `corr` as an SFBM.
+
+## bigsnpr 1.11.2
+
+- Now use a sparse format for sampling betas returned in LDpred2-auto, instead of a dense matrix that could require quite some memory to store.
+
+## bigsnpr 1.11.0
+
+- Add two new parameters to `snp_simuPheno()`: `alpha` and `prob`.
+
 ## bigsnpr 1.10.7
 
 - Fix a liftOver error in `snp_modifyBuild()`.
 
 ## bigsnpr 1.10.6
 
-Better `snp_ldsplit()`:
-- also return `$cost2`, the sum of squared sizes of the blocks,
-- for equivalent splits (with the same cost), now return the one that also minimizes cost2,
-- now return unique splits only (e.g. could get equivalent splits with different `max_size`).
+- Better `snp_ldsplit()`:
+    - also return `$cost2`, the sum of squared sizes of the blocks,
+    - for equivalent splits (with the same cost), now return the one that also minimizes cost2,
+    - now return unique splits only (e.g. could get equivalent splits with different `max_size`).
 
 ## bigsnpr 1.10.5
 
@@ -40,7 +56,7 @@ Better `snp_ldsplit()`:
 
 - Enforce `scipen = 50` when writing files to turn off scientific format (e.g. for physical positions stored as `double`).
 
-## bigsparser 0.6
+## bigsnpr 1.9.12 & bigsparser 0.6
 
 - Use a better strategy for appending to an SFBM (`$add_columns()`).
 
@@ -114,18 +130,15 @@ Better `snp_ldsplit()`:
 
 - Change defaults in LDpred2-auto to use 500 burn-in iterations (was 1000 before) followed by 200 iterations (500 before). Such a large number of iterations is usually not really needed.
 
-## bigsparser 0.5
+## bigsnpr 1.8.3 & bigsparser 0.5
 
 - New compact format for SFBMs which should be really useful for LDpred2 (should require about half of memory and be twice as fast). The only thing that you need to change is `as_SFBM(corr0, compact = TRUE)`. Make sure to reinstall {bigsnpr} after updating to {bigsparser} v0.5. 
 
 ## bigsnpr 1.8.2
 
 - Prepare for incoming paper on (among other things) improved robustness of LDpred2-auto:
-
     - add parameter `shrink_corr` to shrink off-diagonal elements of the LD matrix,
-    
     - add parameter `num_iter_change` to control when starting to shrink the variants that change sign too much,
-    
     - also return `corr_est`, the "imputed" correlations between variants and phenotypes, which can be used for post-QCing variants by comparing those to `beta / sqrt(n_eff * beta_se^2 + beta^2)`.
 
 ## bigsnpr 1.8.0
@@ -200,11 +213,9 @@ Better `snp_ldsplit()`:
 
 - Add option `return_sampling_betas` in `snp_ldpred2_grid()` to return all sampling betas (after burn-in), which is useful for assessing the uncertainty of the PRS at the individual level (see https://doi.org/10.1101/2020.11.30.403188).
 
-## bigsparser 0.4.1
+## bigsnpr 1.5.4 & bigsparser 0.4.1
 
-- Faster cross-product with SFBM, which should make all LDpred2 models faster.
-
-## bigsnpr 1.5.4
+- Faster cross-product with an SFBM, which should make all LDpred2 models faster.
 
 - Also return `$postp_est`, `$h2_init` and `$p_init` in LDpred2-auto.
 
@@ -228,11 +239,9 @@ Better `snp_ldsplit()`:
 
 - Add option `sparse` to enable getting also a sparse solution in LDpred2-auto.
 
-## bigsparser 0.3.0
+## bigsnpr 1.4.7 & bigsparser 0.3.0
 
-- Faster `bigsparser::as_SFBM()`.
-
-## bigsnpr 1.4.7
+- Faster `as_SFBM()`.
 
 - Allow for format `01` or `1` for chromosomes in BGI files.
 
@@ -412,7 +421,7 @@ Better `snp_ldsplit()`:
 
 ## bigsnpr 0.2.5
 
-- **This package won't be on CRAN**.
+- **This package won't be on CRAN**. (Okay, it has been back on CRAN since; I was just pissed at BR :D)
 
 ## bigsnpr 0.2.4
 
