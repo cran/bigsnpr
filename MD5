@@ -1,6 +1,6 @@
-497a544371731a90facd5bf2212e4204 *DESCRIPTION
+d7a3c1478adc1b58ee76a69e42e76649 *DESCRIPTION
 7eab73312a11b1ba7440176db9bedc67 *NAMESPACE
-37776d1b5a79fb3dc4783e3dc80d30b3 *NEWS.md
+7c5f78bf7da99b1c9c5f91927f1ba720 *NEWS.md
 9ac689d4f5d03173017e5fac49705640 *R/Fst.R
 f71ce8e913e7a071767d6145478839a1 *R/LDpred2.R
 0e030629dc6bf4100421f3256c8448ce *R/MAX3.R
@@ -12,14 +12,14 @@ e4b531df48374e034e165d32700e3367 *R/autoSVD.R
 9fa5ef12ae89cfbc723375f394a855d4 *R/bed-class.R
 bda6c7a98db5413d5d69732c7c84bab7 *R/bed-clumping.R
 3154e19a3adeb5fd7169756c3f729a0b *R/bed-mult-vec.R
-60d97fe031d984ecc1dfde82394a950c *R/bed-projectPCA.R
+9fe86fa32a66fae498439d44cb362090 *R/bed-projectPCA.R
 6bb181626c0092e71293f3dcf776c8e6 *R/bed-tcrossprodSelf.R
 aab35336740a42aff377f3130301dac8 *R/bigSNP-class.R
 66550a5569be9038d57e5a37bd83e4df *R/bigsnpr-package.R
 4fba962bfb53fd3479f8895802fa9ddc *R/binom-scaling.R
 6c0f40dc9bdb443a16fcbe233acee968 *R/clumping.R
 272d263f7af7743b51be67b9baf73672 *R/corr.R
-06aba4a7703b2304ea2d53c0d586bc2c *R/external-software.R
+1eab3a71190d9fbdad132f93c82c7a76 *R/external-software.R
 e9a7a8cb1028cdfff1ca6f12d953c135 *R/fake.R
 9390c7feb87b117810a5043f04f4bd6a *R/get-save-infos.R
 60a496072d11e7e94d8226e05f8103a5 *R/impute.R
@@ -27,7 +27,7 @@ e9a7a8cb1028cdfff1ca6f12d953c135 *R/fake.R
 5ee22dd9e5932beab747f86b6a02c423 *R/ld-scores.R
 aa85c3876217f0204d6f1f7b9ea3b501 *R/ldsc.R
 1ad713eefea1542f2380297ad9760a91 *R/man-qq-gc.R
-23d8761925a22c2bd0d667fa78dbb3f5 *R/match-alleles.R
+4debcf14074b3313f4c5ecb1ba3b22b1 *R/match-alleles.R
 d4165e9b53315c6116bd870a9e802e98 *R/pcadapt.R
 87dad634238651282d49d308762e05a0 *R/prod-bgen.R
 a8fca8ff117827f602b1d088e2a8fe87 *R/read-bgen.R
@@ -39,7 +39,7 @@ b2399d411aeb935d530b82b4bc106e96 *R/utils-assert.R
 f3c15f9f1a192d807fc8f25be7d6be3b *R/utils.R
 0b8c44a5615d10511094370247255d03 *R/write-plink.R
 b8554e15f0f2ed940b763264f210ef1f *README.md
-871747e776316fb00462ed23fe3225c3 *build/partial.rdb
+cb4924f3573383fca290a0a8e2ca5294 *build/partial.rdb
 b6a17477d45da8d606bd64c09c0b2932 *data/LD.wiki34.rda
 5f766059703af6e6a9cdf11b73174638 *inst/CITATION
 87675969f7de1f92bd6a3998f7e81d76 *inst/WORDLIST
@@ -167,7 +167,7 @@ d2b09e9225fe37f04c2b0d3a7910ce89 *tests/testthat/test-2-pca-project.R
 47727cfe00d27f260880cded8462a8b7 *tests/testthat/test-3-fastImpute.R
 1aa8a4363631ec7f60c5a3f4c143fda9 *tests/testthat/test-3-plink-QC.R
 5073a0a122bb00199f86eb4375e5b590 *tests/testthat/test-4-MAX3.R
-d4db2e9d68d91c37641075854fddb2bb *tests/testthat/test-4-manhattan.R
+6f27821c339a822db9d71d6fc3865693 *tests/testthat/test-4-manhattan.R
 8ec0f4014d504a2f01e0786c3dcf7b03 *tests/testthat/test-4-pcadapt.R
 c893b969653b2bb8f20c6d0ab077b54b *tests/testthat/test-4-split-LD.R
 f8d8624914d9b78da243069471d75f5a *tests/testthat/test-5-bed-prod-vec.R
