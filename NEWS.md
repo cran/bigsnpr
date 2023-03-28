@@ -1,3 +1,41 @@
+## bigsnpr 1.12.2
+
+- Implement matrix accessors `[,]` for bed objects.
+
+## bigsnpr 1.12.1
+
+- Use a safer detection of strong divergences in LDpred2 and lassosum2.
+
+## bigsnpr 1.12.0
+
+- Add new parameter `ind.corr` to `snp_lassosum2()`, `snp_ldpred2_grid()` and `snp_ldpred2_auto()` to be able to use a subset of `corr` without making a copy of it.
+
+- Add new parameter `ind.beta` to `snp_ldsc2()` to use a subset of the full LD scores corresponding to `df_beta`.
+
+## bigsnpr 1.11.12
+
+- Add new parameter `pos_scaled` to `snp_ldsplit()`.
+
+## bigsnpr 1.11.11
+
+- Fix C++ code that used integers to store the positions for clumping.
+
+## bigsnpr 1.11.10
+
+- Add other architectures (AMD / ARM) as options for PLINK2.
+
+## bigsnpr 1.11.9
+
+- Add option `use_MLE` in LDpred2-auto to allow, when using `FALSE`, for running LDpred2-auto as in previous versions (e.g. v1.10.8), which did not include alpha in the model. Default is `TRUE`.
+
+## bigsnpr 1.11.8
+
+- Detect strong divergence in LDpred2-auto, and return missing values in that case.
+
+## bigsnpr 1.11.7
+
+- Fix font rendering issue of `>=` in subtitle of `snp_manhattan()`.
+
 ## bigsnpr 1.11.5
 
 - Autocomplete PLINK builds to be downloaded (fix #383).

@@ -12,12 +12,6 @@ const double MIN_H2 = 1e-3;
 
 /******************************************************************************/
 
-double dotprod2(const NumericVector& X, const NumericVector& Y) {
-  return std::inner_product(X.begin(), X.end(), Y.begin(), 0.0);
-}
-
-/******************************************************************************/
-
 // [[Rcpp::export]]
 arma::vec& MLE_alpha(arma::vec& par,
                      const std::vector<int>& ind_causal,
@@ -62,10 +56,9 @@ arma::vec& MLE_alpha(arma::vec& par,
 // [[Rcpp::export]]
 List ldpred2_gibbs_auto(Environment corr,
                         const NumericVector& beta_hat,
-                        const NumericVector& beta_init,
-                        const IntegerVector& order,
                         const NumericVector& n_vec,
                         const NumericVector& log_var,
+                        const IntegerVector& ind_sub,
                         double p_init,
                         double h2_init,
                         int burn_in,
@@ -73,6 +66,7 @@ List ldpred2_gibbs_auto(Environment corr,
                         int report_step,
                         bool no_jump_sign,
                         double shrink_corr,
+                        bool use_mle,
                         const NumericVector& alpha_bounds,
                         double mean_ld = 1,
                         bool verbose = false) {
@@ -80,41 +74,43 @@ List ldpred2_gibbs_auto(Environment corr,
   XPtr<SFBM> sfbm = corr["address"];
 
   int m = beta_hat.size();
-  myassert_size(sfbm->nrow(), m);
-  myassert_size(sfbm->ncol(), m);
-  myassert_size(order.size(), m);
-  myassert_size(beta_init.size(), m);
   myassert_size(n_vec.size(), m);
+  NumericVector curr_beta(m);  // only for the subset
+  int m2 = sfbm->ncol();
+  NumericVector dotprods(m2);  // for the full corr
 
-  NumericVector curr_beta = Rcpp::clone(beta_init);
-  NumericVector dotprods  = sfbm->prod(curr_beta);
   NumericVector avg_beta(m), avg_postp(m), avg_beta_hat(m);
 
   arma::sp_mat sample_beta(m, num_iter / report_step);
   int ind_report = 0, next_k_reported = burn_in + report_step - 1;
 
   int num_iter_tot = burn_in + num_iter;
-  NumericVector p_est(num_iter_tot), h2_est(num_iter_tot), alpha_est(num_iter_tot);
+  NumericVector p_est(num_iter_tot, NA_REAL), h2_est(num_iter_tot, NA_REAL), alpha_est(num_iter_tot, NA_REAL);
 
-  double cur_h2_est = shrink_corr * dotprod2(curr_beta, dotprods) +
-    (1 - shrink_corr) * dotprod2(curr_beta, curr_beta);
+  double cur_h2_est = 0;
   double p = std::max(p_init, MIN_P), h2 = std::max(h2_init, MIN_H2);
   arma::vec par_mle = {0, h2 / (m * p)};  // (alpha + 1) and sigma2 [init]
+
+  double gap0 = 2 *
+    std::inner_product(beta_hat.begin(), beta_hat.end(), beta_hat.begin(), 0.0);
+
   std::vector<int> ind_causal;
 
   for (int k = 0; k < num_iter_tot; k++) {
 
     double inv_odd_p = (1 - p) / p;
     double alpha_plus_one = par_mle[0], sigma2 = par_mle[1];
+    double gap = 0;
 
     ind_causal.clear();
 
-    for (const int& j : order) {
+    for (int j = 0; j < m; j++) {
 
-      double dotprod = dotprods[j];  // sfbm->dot_col(j, curr_beta);
-      double res_beta_hat_j = beta_hat[j] + shrink_corr * (curr_beta[j] - dotprod);
+      int j2 = ind_sub[j];
+      double dotprod = dotprods[j2];
+      double res_beta_hat_j = beta_hat[j] - shrink_corr * (dotprod - curr_beta[j]);
 
-      double scale_freq = ::exp(alpha_plus_one * log_var[j]);
+      double scale_freq = use_mle ? ::exp(alpha_plus_one * log_var[j]) : 1;
       double C1 = scale_freq * sigma2 * n_vec[j];
       double C2 = 1 / (1 + 1 / C1);
       double C3 = C2 * res_beta_hat_j;
@@ -147,6 +143,7 @@ List ldpred2_gibbs_auto(Environment corr,
           curr_beta[j] = samp_beta;
           diff += samp_beta;
           ind_causal.push_back(j);
+          gap += samp_beta * samp_beta;
         }
 
       } else {
@@ -155,21 +152,31 @@ List ldpred2_gibbs_auto(Environment corr,
 
       if (diff != 0) {
         cur_h2_est += diff * (2 * dotprod_shrunk + diff);
-        dotprods = sfbm->incr_mult_col(j, dotprods, diff);
+        dotprods = sfbm->incr_mult_col(j2, dotprods, diff);
       }
+    }
+
+    if (gap > gap0) {
+      avg_beta.fill(NA_REAL); avg_postp.fill(NA_REAL); avg_beta_hat.fill(NA_REAL);
+      break;
     }
 
     int nb_causal = ind_causal.size();
     p = std::max(::Rf_rbeta(1 + nb_causal / mean_ld, 1 + (m - nb_causal) / mean_ld), MIN_P);
     h2 = std::max(cur_h2_est, MIN_H2);
-    par_mle = MLE_alpha(par_mle, ind_causal, log_var, curr_beta, alpha_bounds, true);
+    if (use_mle) {
+      par_mle = MLE_alpha(par_mle, ind_causal, log_var, curr_beta, alpha_bounds, true);
+    } else {
+      par_mle[1] = h2 / (m * p);
+    }
+
     if (verbose) Rcout <<
       k + 1 << ": " << p << " // " << h2 << " // " <<  par_mle[0] - 1 << std::endl;
 
     // path of parameters
     p_est[k]  = p;
     h2_est[k] = h2;
-    alpha_est[k] = par_mle[0] - 1;
+    if (use_mle) alpha_est[k] = par_mle[0] - 1;
 
     // store some sampling betas
     if (k == next_k_reported) {

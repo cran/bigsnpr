@@ -17,12 +17,16 @@ bed_row_counts_cpp <- function(obj_bed, ind_row, ind_col, ncores) {
     .Call(`_bigsnpr_bed_row_counts_cpp`, obj_bed, ind_row, ind_col, ncores)
 }
 
-read_bed_scaled <- function(obj_bed, ind_row, ind_col, center, scale) {
-    .Call(`_bigsnpr_read_bed_scaled`, obj_bed, ind_row, ind_col, center, scale)
-}
-
 prod_and_rowSumsSq <- function(obj_bed, ind_row, ind_col, center, scale, V) {
     .Call(`_bigsnpr_prod_and_rowSumsSq`, obj_bed, ind_row, ind_col, center, scale, V)
+}
+
+read_bed <- function(obj_bed, ind_row, ind_col) {
+    .Call(`_bigsnpr_read_bed`, obj_bed, ind_row, ind_col)
+}
+
+read_bed_scaled <- function(obj_bed, ind_row, ind_col, center, scale) {
+    .Call(`_bigsnpr_read_bed_scaled`, obj_bed, ind_row, ind_col, center, scale)
 }
 
 bed_pMatVec4 <- function(obj_bed, ind_row, ind_col, center, scale, x, ncores) {
@@ -61,12 +65,12 @@ impute <- function(BM, method, ncores) {
     invisible(.Call(`_bigsnpr_impute`, BM, method, ncores))
 }
 
-lassosum2 <- function(corr, beta_hat, lambda, delta_plus_one, dfmax, maxiter, tol) {
-    .Call(`_bigsnpr_lassosum2`, corr, beta_hat, lambda, delta_plus_one, dfmax, maxiter, tol)
+lassosum2 <- function(corr, beta_hat, lambda, delta_plus_one, ind_sub, dfmax, maxiter, tol) {
+    .Call(`_bigsnpr_lassosum2`, corr, beta_hat, lambda, delta_plus_one, ind_sub, dfmax, maxiter, tol)
 }
 
-ld_scores_sfbm <- function(X, compact, ncores) {
-    .Call(`_bigsnpr_ld_scores_sfbm`, X, compact, ncores)
+ld_scores_sfbm <- function(X, ind_sub, ncores) {
+    .Call(`_bigsnpr_ld_scores_sfbm`, X, ind_sub, ncores)
 }
 
 ld_scores <- function(obj, rowInd, colInd, size, pos, ncores) {
@@ -77,16 +81,16 @@ MLE_alpha <- function(par, ind_causal, log_var, curr_beta, alpha_bounds, boot = 
     .Call(`_bigsnpr_MLE_alpha`, par, ind_causal, log_var, curr_beta, alpha_bounds, boot, verbose)
 }
 
-ldpred2_gibbs_auto <- function(corr, beta_hat, beta_init, order, n_vec, log_var, p_init, h2_init, burn_in, num_iter, report_step, no_jump_sign, shrink_corr, alpha_bounds, mean_ld = 1, verbose = FALSE) {
-    .Call(`_bigsnpr_ldpred2_gibbs_auto`, corr, beta_hat, beta_init, order, n_vec, log_var, p_init, h2_init, burn_in, num_iter, report_step, no_jump_sign, shrink_corr, alpha_bounds, mean_ld, verbose)
+ldpred2_gibbs_auto <- function(corr, beta_hat, n_vec, log_var, ind_sub, p_init, h2_init, burn_in, num_iter, report_step, no_jump_sign, shrink_corr, use_mle, alpha_bounds, mean_ld = 1, verbose = FALSE) {
+    .Call(`_bigsnpr_ldpred2_gibbs_auto`, corr, beta_hat, n_vec, log_var, ind_sub, p_init, h2_init, burn_in, num_iter, report_step, no_jump_sign, shrink_corr, use_mle, alpha_bounds, mean_ld, verbose)
 }
 
-ldpred2_gibbs_one_sampling <- function(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter) {
-    .Call(`_bigsnpr_ldpred2_gibbs_one_sampling`, corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter)
+ldpred2_gibbs_one_sampling <- function(corr, beta_hat, n_vec, ind_sub, h2, p, sparse, burn_in, num_iter) {
+    .Call(`_bigsnpr_ldpred2_gibbs_one_sampling`, corr, beta_hat, n_vec, ind_sub, h2, p, sparse, burn_in, num_iter)
 }
 
-ldpred2_gibbs_one <- function(corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter) {
-    .Call(`_bigsnpr_ldpred2_gibbs_one`, corr, beta_hat, beta_init, order, n_vec, h2, p, sparse, burn_in, num_iter)
+ldpred2_gibbs_one <- function(corr, beta_hat, n_vec, ind_sub, h2, p, sparse, burn_in, num_iter) {
+    .Call(`_bigsnpr_ldpred2_gibbs_one`, corr, beta_hat, n_vec, ind_sub, h2, p, sparse, burn_in, num_iter)
 }
 
 multLinReg <- function(obj, ind_row, ind_col, U, ncores = 1L) {
@@ -121,8 +125,8 @@ get_L <- function(p, i, x, thr_r2, max_r2) {
     .Call(`_bigsnpr_get_L`, p, i, x, thr_r2, max_r2)
 }
 
-get_C <- function(L, min_size, max_size, max_K, max_cost) {
-    .Call(`_bigsnpr_get_C`, L, min_size, max_size, max_K, max_cost)
+get_C <- function(L, min_size, max_size, max_K, max_cost, pos_scaled) {
+    .Call(`_bigsnpr_get_C`, L, min_size, max_size, max_K, max_cost, pos_scaled)
 }
 
 get_perc <- function(p, i, all_last) {

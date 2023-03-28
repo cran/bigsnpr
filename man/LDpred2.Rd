@@ -15,7 +15,8 @@ snp_ldpred2_grid(
   burn_in = 50,
   num_iter = 100,
   ncores = 1,
-  return_sampling_betas = FALSE
+  return_sampling_betas = FALSE,
+  ind.corr = cols_along(corr)
 )
 
 snp_ldpred2_auto(
@@ -30,7 +31,9 @@ snp_ldpred2_auto(
   report_step = num_iter + 1L,
   allow_jump_sign = TRUE,
   shrink_corr = 1,
+  use_MLE = TRUE,
   alpha_bounds = c(-1.5, 0.5),
+  ind.corr = cols_along(corr),
   ncores = 1
 )
 }
@@ -69,6 +72,9 @@ individual level (see \doi{10.1101/2020.11.30.403188}).
 Default is \code{FALSE} (only returns the averaged final vectors of betas).
 If \code{TRUE}, only one set of parameters is allowed.}
 
+\item{ind.corr}{Indices to "subset" \code{corr}, as if this was run with
+\code{corr[ind.corr, ind.corr]} instead. No subsetting by default.}
+
 \item{h2_init}{Heritability estimate for initialization.}
 
 \item{vec_p_init}{Vector of initial values for p. Default is \code{0.1}.}
@@ -96,6 +102,12 @@ for accelerating convergence of chains with a large initial value for p.}
 elements of the correlation matrix. Default is \code{1} (unchanged).
 You can use e.g. \code{0.95} to add a bit of regularization.}
 
+\item{use_MLE}{Whether to use maximum likelihood estimation (MLE) to estimate
+alpha and the variance component (since v1.11.4), or assume that alpha is
+-1 and estimate the variance of (scaled) effects as h2/(m*p), as it was
+done in earlier versions of LDpred2-auto (e.g. in v1.10.8). Default is \code{TRUE},
+which should provide a better model fit, but might also be less robust.}
+
 \item{alpha_bounds}{Boundaries for the estimates of \eqn{\alpha}.
 Default is \code{c(-1.5, 0.5)}. You can use the same value twice to fix \eqn{\alpha}.}
 }
@@ -109,7 +121,8 @@ corresponds to one iteration instead (after burn-in).
 
 \code{snp_ldpred2_auto}: A list (over \code{vec_p_init}) of lists with
 \itemize{
-\item \verb{$beta_est}: vector of effect sizes (on the allele scale)
+\item \verb{$beta_est}: vector of effect sizes (on the allele scale); note that
+missing values are returned when strong divergence is detected
 \item \verb{$beta_est_sparse} (only when \code{sparse = TRUE}): sparse vector of effect sizes
 \item \verb{$postp_est}: vector of posterior probabilities of being causal
 \item \verb{$corr_est}, the "imputed" correlations between variants and phenotypes,

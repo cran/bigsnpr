@@ -224,3 +224,87 @@ test_that("MLE_alpha works", {
 })
 
 ################################################################################
+
+test_that("ind.corr works", {
+
+  skip_if(is_cran)
+  skip_if_offline("raw.githubusercontent.com")
+
+  bedfile <- file.path(tempdir(), "tmp-data/public-data3.bed")
+  if (!file.exists(rdsfile <- sub_bed(bedfile, ".rds"))) {
+    zip <- tempfile(fileext = ".zip")
+    download.file(
+      "https://github.com/privefl/bigsnpr/blob/master/data-raw/public-data3.zip?raw=true",
+      destfile = zip, mode = "wb")
+    unzip(zip, exdir = tempdir())
+    rds <- snp_readBed(bedfile)
+    expect_identical(normalizePath(rds), normalizePath(rdsfile))
+  }
+
+  obj.bigSNP <- snp_attach(rdsfile)
+  G <- obj.bigSNP$genotypes
+  y <- obj.bigSNP$fam$affection
+  POS2 <- obj.bigSNP$map$genetic.dist + 1000 * obj.bigSNP$map$chromosome
+
+  sumstats <- bigreadr::fread2(file.path(tempdir(), "tmp-data/public-data3-sumstats.txt"))
+  sumstats$n_eff <- sumstats$N
+  map <- setNames(obj.bigSNP$map[-3], c("chr", "rsid", "pos", "a1", "a0"))
+  df_beta <- snp_match(sumstats, map, join_by_pos = FALSE)
+
+  ind_var <- df_beta$`_NUM_ID_`
+  corr0 <- snp_cor(G, ind.col = ind_var, size = 3 / 1000,
+                   infos.pos = POS2[ind_var], ncores = 2)
+  ld <- bigsnpr:::sp_colSumsSq_sym(p = corr0@p, i = corr0@i, x = corr0@x)
+  corr <- as_SFBM(corr0, compact = sample(c(TRUE, FALSE), 1))
+  rm(corr0)
+
+  ind.sub <- sample(ncol(corr), 30e3)
+
+  # LDpred2-gibbs
+  p_seq <- signif(seq_log(1e-3, 1, length.out = 7), 1)
+  params <- expand.grid(p = p_seq, h2 = 0.3, sparse = c(FALSE, TRUE))
+  set.seed(1)
+  system.time(
+    beta_grid <- snp_ldpred2_grid(as_SFBM(corr[ind.sub, ind.sub]),
+                                  df_beta[ind.sub, ], params, ncores = 2)
+  )
+  set.seed(1)
+  system.time(
+    beta_grid2 <- snp_ldpred2_grid(corr, ind.corr = ind.sub,
+                                   df_beta[ind.sub, ], params, ncores = 2)
+  )
+  expect_equal(beta_grid2, beta_grid)
+
+  # LDpred2-uncertainty
+  set.seed(1)
+  beta_grid <- snp_ldpred2_grid(as_SFBM(corr[ind.sub, ind.sub]),
+                                df_beta[ind.sub, ], params[3, ],
+                                return_sampling_betas = TRUE)
+  set.seed(1)
+  beta_grid2 <- snp_ldpred2_grid(corr, ind.corr = ind.sub,
+                                 df_beta[ind.sub, ], params[3, ],
+                                 return_sampling_betas = TRUE)
+  expect_equal(beta_grid2, beta_grid)
+
+  # LDpred2-auto
+  set.seed(1)
+  beta_auto <- snp_ldpred2_auto(as_SFBM(corr[ind.sub, ind.sub]), df_beta[ind.sub, ],
+                                h2_init = 0.3, sparse = TRUE, shrink_corr = 0.95,
+                                burn_in = 100, num_iter = 100)
+  set.seed(1)
+  beta_auto2 <- snp_ldpred2_auto(corr, ind.corr = ind.sub, df_beta[ind.sub, ],
+                                 h2_init = 0.3, sparse = TRUE, shrink_corr = 0.95,
+                                 burn_in = 100, num_iter = 100)
+  expect_equal(beta_auto2, beta_auto)
+
+  # LD Score regression
+  ld <- Matrix::colSums(corr[]^2)
+  ldsc <- snp_ldsc(ld_score = ld[ind.sub], ld_size = ncol(corr),
+                   chi2 = with(df_beta[ind.sub, ], (beta / beta_se)^2),
+                   sample_size = df_beta$N[ind.sub])
+  ldsc2 <- snp_ldsc2(corr, ind.beta = ind.sub, df_beta[ind.sub, ],
+                     intercept = NULL, blocks = 200)
+  expect_equal(ldsc2, ldsc)
+})
+
+################################################################################

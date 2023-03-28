@@ -51,6 +51,8 @@ snp_ldpred2_inf <- function(corr, df_beta, h2) {
 #' @param burn_in Number of burn-in iterations.
 #' @param num_iter Number of iterations after burn-in.
 #' @inheritParams bigsnpr-package
+#' @param ind.corr Indices to "subset" `corr`, as if this was run with
+#'   `corr[ind.corr, ind.corr]` instead. No subsetting by default.
 #' @param return_sampling_betas Whether to return all sampling betas (after
 #'   burn-in)? This is useful for assessing the uncertainty of the PRS at the
 #'   individual level (see \doi{10.1101/2020.11.30.403188}).
@@ -72,11 +74,13 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
                              burn_in = 50,
                              num_iter = 100,
                              ncores = 1,
-                             return_sampling_betas = FALSE) {
+                             return_sampling_betas = FALSE,
+                             ind.corr = cols_along(corr)) {
 
   assert_df_with_names(df_beta, c("beta", "beta_se", "n_eff"))
   assert_df_with_names(grid_param, c("p", "h2", "sparse"))
-  assert_lengths(rows_along(corr), cols_along(corr), rows_along(df_beta))
+  assert_lengths(ind.corr, rows_along(df_beta))
+  stopifnot(all(ind.corr %in% cols_along(corr)))
   assert_pos(df_beta$beta_se, strict = TRUE)
   assert_pos(grid_param$h2, strict = TRUE)
   assert_cores(ncores)
@@ -97,16 +101,15 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
       h2 = grid$h2, p = grid$p, sparse = grid$sparse,
       .export = "ldpred2_gibbs_one") %dorng% {
         ldpred2_gibbs_one(
-          corr      = corr,
-          beta_hat  = beta_hat,
-          beta_init = rep(0, length(beta_hat)),
-          order     = seq_along(beta_hat) - 1L,
-          n_vec     = N,
-          h2        = h2,
-          p         = p,
-          sparse    = sparse,
-          burn_in   = burn_in,
-          num_iter  = num_iter
+          corr     = corr,
+          beta_hat = beta_hat,
+          n_vec    = N,
+          ind_sub  = ind.corr - 1L,
+          h2       = h2,
+          p        = p,
+          sparse   = sparse,
+          burn_in  = burn_in,
+          num_iter = num_iter
         )
       }
 
@@ -120,16 +123,15 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
 
     # All sampling betas for one LDpred2 model (useful for uncertainty assessment)
     beta_gibbs <- ldpred2_gibbs_one_sampling(
-      corr      = corr,
-      beta_hat  = beta_hat,
-      beta_init = rep(0, length(beta_hat)),
-      order     = seq_along(beta_hat) - 1L,
-      n_vec     = N,
-      h2        = grid_param$h2,
-      p         = grid_param$p,
-      sparse    = grid_param$sparse,
-      burn_in   = burn_in,
-      num_iter  = num_iter
+      corr     = corr,
+      beta_hat = beta_hat,
+      n_vec    = N,
+      ind_sub  = ind.corr - 1L,
+      h2       = grid_param$h2,
+      p        = grid_param$p,
+      sparse   = grid_param$sparse,
+      burn_in  = burn_in,
+      num_iter = num_iter
     )
 
   }
@@ -159,11 +161,17 @@ snp_ldpred2_grid <- function(corr, df_beta, grid_param,
 #' @param shrink_corr Shrinkage multiplicative coefficient to apply to off-diagonal
 #'   elements of the correlation matrix. Default is `1` (unchanged).
 #'   You can use e.g. `0.95` to add a bit of regularization.
+#' @param use_MLE Whether to use maximum likelihood estimation (MLE) to estimate
+#'   alpha and the variance component (since v1.11.4), or assume that alpha is
+#'   -1 and estimate the variance of (scaled) effects as h2/(m*p), as it was
+#'   done in earlier versions of LDpred2-auto (e.g. in v1.10.8). Default is `TRUE`,
+#'   which should provide a better model fit, but might also be less robust.
 #' @param alpha_bounds Boundaries for the estimates of \eqn{\alpha}.
 #'   Default is `c(-1.5, 0.5)`. You can use the same value twice to fix \eqn{\alpha}.
 #'
 #' @return `snp_ldpred2_auto`: A list (over `vec_p_init`) of lists with
-#'   - `$beta_est`: vector of effect sizes (on the allele scale)
+#'   - `$beta_est`: vector of effect sizes (on the allele scale); note that
+#'     missing values are returned when strong divergence is detected
 #'   - `$beta_est_sparse` (only when `sparse = TRUE`): sparse vector of effect sizes
 #'   - `$postp_est`: vector of posterior probabilities of being causal
 #'   - `$corr_est`, the "imputed" correlations between variants and phenotypes,
@@ -199,11 +207,14 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
                              report_step = num_iter + 1L,
                              allow_jump_sign = TRUE,
                              shrink_corr = 1,
+                             use_MLE = TRUE,
                              alpha_bounds = c(-1.5, 0.5),
+                             ind.corr = cols_along(corr),
                              ncores = 1) {
 
   assert_df_with_names(df_beta, c("beta", "beta_se", "n_eff"))
-  assert_lengths(rows_along(corr), cols_along(corr), rows_along(df_beta))
+  assert_lengths(ind.corr, rows_along(df_beta))
+  stopifnot(all(ind.corr %in% cols_along(corr)))
   assert_pos(df_beta$beta_se, strict = TRUE)
   assert_pos(h2_init, strict = TRUE)
 
@@ -212,7 +223,7 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
   beta_hat <- df_beta$beta * sd
 
   mean_ld <- mean(
-    ld_scores_sfbm(corr, compact = !is.null(corr[["first_i"]]), ncores = ncores))
+    ld_scores_sfbm(corr, ind_sub = ind.corr - 1L, ncores = ncores))
 
   ord <- order(-vec_p_init)  # large p first
 
@@ -224,10 +235,9 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
     ldpred_auto <- ldpred2_gibbs_auto(
       corr         = corr,
       beta_hat     = beta_hat,
-      beta_init    = rep(0, length(beta_hat)),
-      order        = seq_along(beta_hat) - 1L,
       n_vec        = N,
       log_var      = 2 * log(sd),
+      ind_sub      = ind.corr - 1L,
       p_init       = p_init,
       h2_init      = h2_init,
       burn_in      = burn_in,
@@ -236,6 +246,7 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
       report_step  = report_step,
       no_jump_sign = !allow_jump_sign,
       shrink_corr  = shrink_corr,
+      use_mle      = use_MLE,
       alpha_bounds = alpha_bounds + 1,
       mean_ld      = mean_ld
     )
@@ -248,18 +259,17 @@ snp_ldpred2_auto <- function(corr, df_beta, h2_init,
     ldpred_auto$h2_init <- h2_init
     ldpred_auto$p_init  <- p_init
 
-    if (sparse) {
+    if (sparse && !is.na(ldpred_auto$h2_est)) {
       beta_gibbs <- ldpred2_gibbs_one(
-        corr      = corr,
-        beta_hat  = beta_hat,
-        beta_init = rep(0, length(beta_hat)),
-        order     = seq_along(beta_hat) - 1L,
-        n_vec     = N,
-        h2        = ldpred_auto$h2_est,
-        p         = ldpred_auto$p_est,
-        sparse    = TRUE,
-        burn_in   = 50,
-        num_iter  = 100
+        corr     = corr,
+        beta_hat = beta_hat,
+        n_vec    = N,
+        ind_sub  = ind.corr - 1L,
+        h2       = ldpred_auto$h2_est,
+        p        = ldpred_auto$p_est,
+        sparse   = TRUE,
+        burn_in  = 50,
+        num_iter = 100
       )
       ldpred_auto$beta_est_sparse <- beta_gibbs / sd
     }
