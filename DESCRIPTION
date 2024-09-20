@@ -2,8 +2,8 @@ Encoding: UTF-8
 Package: bigsnpr
 Type: Package
 Title: Analysis of Massive SNP Arrays
-Version: 1.12.2
-Date: 2023-03-08
+Version: 1.12.15
+Date: 2024-09-20
 Authors@R: c(
     person("Florian", "Privé", email = "florian.prive.21@gmail.com", role = c("aut", "cre")),
     person("Michael", "Blum", role = "ths"),
@@ -15,8 +15,8 @@ License: GPL-3
 LazyData: TRUE
 Language: en-US
 ByteCompile: TRUE
-SystemRequirements: C++11. Also a few functions from package 'bigsnpr'
-        wrap existing software such as 'PLINK'
+SystemRequirements: A few functions from package 'bigsnpr' wrap
+        existing software such as 'PLINK'
         <www.cog-genomics.org/plink2>. Functions are provided to
         download these software. Note that these external software
         might not work for some operating systems (e.g. 'PLINK' might
@@ -32,15 +32,15 @@ Suggests: bindata, covr, dbplyr (>= 1.4), dplyr, gaston, glue, Hmisc,
         microbenchmark, pcadapt (>= 4.1), quadprog, RhpcBLASctl,
         rmutil, RSpectra, RSQLite, R.utils, spelling, testthat, tibble,
         xgboost
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 URL: https://privefl.github.io/bigsnpr/
 BugReports: https://github.com/privefl/bigsnpr/issues
 NeedsCompilation: yes
-Packaged: 2023-03-28 08:44:04 UTC; au639593
+Packaged: 2024-09-20 09:54:57 UTC; au639593
 Author: Florian Privé [aut, cre],
   Michael Blum [ths],
   Hugues Aschard [ths],
   Bjarni Jóhann Vilhjálmsson [ths]
 Maintainer: Florian Privé <florian.prive.21@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-03-28 09:20:02 UTC
+Date/Publication: 2024-09-20 14:50:01 UTC

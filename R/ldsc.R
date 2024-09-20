@@ -161,14 +161,18 @@ snp_ldsc <- function(ld_score, ld_size, chi2, sample_size,
 
 #' @rdname snp_ldsc
 #'
-#' @param corr Sparse correlation matrix. Can also be an [SFBM][SFBM-class].
+#' @param corr Sparse correlation matrix. Can also be an [SFBM][bigsparser::SFBM-class].
 #' @param df_beta A data frame with 3 columns:
 #'   - `$beta`: effect size estimates
 #'   - `$beta_se`: standard errors of effect size estimates
-#'   - `$n_eff`: sample size when estimating `beta`
-#'     (in the case of binary traits, this is `4 / (1 / n_control + 1 / n_case)`)
+#'   - `$n_eff`: either GWAS sample size(s) when estimating `beta` for a
+#'     continuous trait, or in the case of a binary trait, this is
+#'     `4 / (1 / n_control + 1 / n_case)`; in the case of a meta-analysis, you
+#'     should sum the effective sample sizes of each study instead of using the
+#'     total numbers of cases and controls, see \doi{10.1016/j.biopsych.2022.05.029};
+#'     when using a mixed model, the effective sample size needs to be adjusted
+#'     as well, see \doi{10.1016/j.xhgg.2022.100136}.
 #' @param ind.beta Indices in `corr` corresponding to `df_beta`. Default is all.
-#' @inheritDotParams snp_ldsc chi2_thr1 chi2_thr2
 #'
 #' @export
 #'
@@ -190,7 +194,8 @@ snp_ldsc2 <- function(corr, df_beta,
                       intercept = 1,
                       ncores = 1,
                       ind.beta = cols_along(corr),
-                      ...) {
+                      chi2_thr1 = 30,
+                      chi2_thr2 = Inf) {
 
   assert_df_with_names(df_beta, c("beta", "beta_se", "n_eff"))
   assert_lengths(ind.beta, rows_along(df_beta))
@@ -213,7 +218,8 @@ snp_ldsc2 <- function(corr, df_beta,
     blocks      = blocks,
     intercept   = intercept,
     ncores      = ncores,
-    ...
+    chi2_thr1   = chi2_thr1,
+    chi2_thr2   = chi2_thr2
   )
 }
 

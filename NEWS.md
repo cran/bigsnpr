@@ -1,3 +1,53 @@
+## bigsnpr 1.12.14
+
+- Add a new `min.maf = 0.02` parameter to `snp_autoSVD()` and `bed_autoSVD()`. Then variants are now discarded when they have either a small MAC or a small MAF.
+
+## bigsnpr 1.12.13
+
+- Can now use matrix accessors for class `bed_light` as well.
+
+## bigsnpr 1.12.12
+
+- Minor improvements to `snp_autoSVD()` and `bed_autoSVD()`: 
+    - error when `min.mac = 0`,
+    - return a better `attr(, "lrldr")`.
+
+## bigsnpr 1.12.11
+
+- In functions `snp_autoSVD()` and `bed_autoSVD()`, now perform the MAC thresholding before the clumping step. This reordering should not change results, but this should be faster now.
+
+## bigsnpr 1.12.10
+
+- In function `snp_ancestry_summary()`, add parameter `sum_to_one` to optionally allows for ancestry coefficients to have a sum lower than 1 (when `FALSE`; default is `TRUE`).
+
+## bigsnpr 1.12.9
+
+- In function `snp_modifyBuild()`, you can now provide `local_chain` as a vector of two, for when using `check_reverse`. You can now also modify the `base_url` from where to download the chain files.
+
+## bigsnpr 1.12.8
+
+- In function `snp_ancestry_summary()`, now also report correlations between input frequencies and each reference frequencies as well as predicted frequencies. Also add a new parameter `min_cor` to error when the latter correlation is too small.
+
+## bigsnpr 1.12.7
+
+- In function `snp_modifyBuild()`, fix a ftp broken link, and add the possibility to use a local chain file specified by the new parameter `local_chain`.
+
+## bigsnpr 1.12.6
+
+- Fix issue with `snp_subset()` when either `$fam` or `$map` are missing.
+
+## bigsnpr 1.12.5
+
+- Add function `snp_asGeneticPos2()` (and `download_genetic_map()`) where you can provide any reference genetic map as a data frame. This function uses linear interpolation to transform physical positions (in bp) to genetic positions (in cM).
+
+## bigsnpr 1.12.4
+
+- Add parameter `p_bounds` in LDpred2-auto to provide bounds for the estimate of the polygenicity p.
+
+## bigsnpr 1.12.3
+
+- Fix sampling issue of `snp_simuPheno()` when `length(ind.possible)` is 1.
+
 ## bigsnpr 1.12.2
 
 - Implement matrix accessors `[,]` for bed objects.

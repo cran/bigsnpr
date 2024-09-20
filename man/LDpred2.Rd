@@ -32,21 +32,27 @@ snp_ldpred2_auto(
   allow_jump_sign = TRUE,
   shrink_corr = 1,
   use_MLE = TRUE,
+  p_bounds = c(1e-05, 1),
   alpha_bounds = c(-1.5, 0.5),
   ind.corr = cols_along(corr),
   ncores = 1
 )
 }
 \arguments{
-\item{corr}{Sparse correlation matrix as an \link[=SFBM-class]{SFBM}.
+\item{corr}{Sparse correlation matrix as an \link[bigsparser:SFBM-class]{SFBM}.
 If \code{corr} is a dsCMatrix or a dgCMatrix, you can use \code{as_SFBM(corr)}.}
 
 \item{df_beta}{A data frame with 3 columns:
 \itemize{
 \item \verb{$beta}: effect size estimates
 \item \verb{$beta_se}: standard errors of effect size estimates
-\item \verb{$n_eff}: sample size when estimating \code{beta}
-(in the case of binary traits, this is \code{4 / (1 / n_control + 1 / n_case)})
+\item \verb{$n_eff}: either GWAS sample size(s) when estimating \code{beta} for a
+continuous trait, or in the case of a binary trait, this is
+\code{4 / (1 / n_control + 1 / n_case)}; in the case of a meta-analysis, you
+should sum the effective sample sizes of each study instead of using the
+total numbers of cases and controls, see \doi{10.1016/j.biopsych.2022.05.029};
+when using a mixed model, the effective sample size needs to be adjusted
+as well, see \doi{10.1016/j.xhgg.2022.100136}.
 }}
 
 \item{h2}{Heritability estimate.}
@@ -64,7 +70,7 @@ They can be run in parallel by changing \code{ncores}.
 \item{num_iter}{Number of iterations after burn-in.}
 
 \item{ncores}{Number of cores used. Default doesn't use parallelism.
-You may use \link{nb_cores}.}
+You may use \code{\link[bigstatsr:reexports]{bigstatsr::nb_cores()}}.}
 
 \item{return_sampling_betas}{Whether to return all sampling betas (after
 burn-in)? This is useful for assessing the uncertainty of the PRS at the
@@ -107,6 +113,9 @@ alpha and the variance component (since v1.11.4), or assume that alpha is
 -1 and estimate the variance of (scaled) effects as h2/(m*p), as it was
 done in earlier versions of LDpred2-auto (e.g. in v1.10.8). Default is \code{TRUE},
 which should provide a better model fit, but might also be less robust.}
+
+\item{p_bounds}{Boundaries for the estimates of p (the polygenicity).
+Default is \code{c(1e-5, 1)}. You can use the same value twice to fix p.}
 
 \item{alpha_bounds}{Boundaries for the estimates of \eqn{\alpha}.
 Default is \code{c(-1.5, 0.5)}. You can use the same value twice to fix \eqn{\alpha}.}

@@ -51,6 +51,8 @@ bed_accessor <- function(x, i, j, ..., drop = TRUE) {
 #'   Default is `TRUE`.
 #'
 #' @export
+#' @rdname bed-mat-acc
+#' @keywords internal
 #'
 #' @examples
 #' bedfile <- system.file("extdata", "example-missing.bed", package = "bigsnpr")
@@ -60,5 +62,10 @@ bed_accessor <- function(x, i, j, ..., drop = TRUE) {
 #' typeof(obj.bed[1, 1])
 #'
 setMethod('[', signature(x = "bed"), bed_accessor)
+
+#' @export
+#' @rdname bed-mat-acc
+#' @keywords internal
+setMethod('[', signature(x = "bed_light"), bed_accessor)
 
 ################################################################################
