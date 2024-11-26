@@ -1,3 +1,15 @@
+## bigsnpr 1.12.18
+
+- Cope with new PLINK2 URLs in `download_plink2()`.
+
+## bigsnpr 1.12.17
+
+- Now properly errors when `ncol(G) != length(infos.chr)` in `snp_clumping()`. Also when `nrow(gwas) != length(infos.chr)` in `snp_manhattan()`.
+
+## bigsnpr 1.12.16
+
+- Add function `snp_projectSelfPCA()` (only `bed_projectSelfPCA()` existed).
+
 ## bigsnpr 1.12.14
 
 - Add a new `min.maf = 0.02` parameter to `snp_autoSVD()` and `bed_autoSVD()`. Then variants are now discarded when they have either a small MAC or a small MAF.
